@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ผังออกแบบระบบน้ำและเมนูเลือกพืชแซมแปลง เลมอนยูเรก้า (Lemon / มะนาวเหลือง) และ มะนาว (Lime) (1.0 × 2.3 เมตร)</title>
+  <style>
+    :root {
+      --bg: #f4f7f5;
+      --card: #ffffff;
+      --primary: #1b6b43;
+      --primary-light: #e6f3ec;
+      --secondary: #0284c7;
+      --secondary-light: #e0f2fe;
+      --accent: #d97706;
+      --accent-light: #fef3c7;
+      --text: #1e293b;
+      --muted: #64748b;
+      --border: #cbd5e1;
+    }
+    * { box-sizing: border-box; font-family: 'Sarabun', 'Segoe UI', Tahoma, sans-serif; }
+    body {
+      margin: 0;
+      padding: 20px;
+      background: var(--bg);
+      color: var(--text);
+    }
+    .container {
+      max-width: 1080px;
+      margin: 0 auto;
+      background: var(--card);
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+      padding: 24px;
+    }
+    header {
+      border-bottom: 1px solid #e2e8f0;
+      padding-bottom: 16px;
+      margin-bottom: 20px;
+    }
+    h1 {
+      margin: 0 0 6px 0;
+      font-size: 1.5rem;
+      color: var(--primary);
+    }
+    .subtitle {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px;
+      margin-bottom: 16px;
+      background: #f8fafc;
+      padding: 16px;
+      border-radius: 12px;
+      border: 1px solid #e2e8f0;
+    }
+    .control-group label {
+      display: block;
+      font-weight: 700;
+      font-size: 0.84rem;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    .crop-select {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--text);
+      font: inherit;
+      font-size: 0.88rem;
+    }
+    .btn-group {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    button {
+      flex: 1;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      background: #fff;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--text);
+      transition: all 0.15s ease;
+    }
+    button:hover { background: #f1f5f9; }
+    button.active {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+    button.active.blue {
+      background: var(--secondary);
+      border-color: var(--secondary);
+    }
+    button.active.amber {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+
+    /* Companion Plant Menu Bar */
+    .plant-menu-box {
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 20px;
+    }
+    .plant-menu-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    .plant-menu-header strong {
+      font-size: 0.98rem;
+      color: #92400e;
+    }
+    .quick-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .quick-btn {
+      flex: initial;
+      padding: 5px 11px;
+      font-size: 0.82rem;
+      border-radius: 6px;
+    }
+    .plant-chips {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(165px, 1fr));
+      gap: 8px;
+    }
+    .plant-option {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+    }
+    .plant-count input {
+      width: 5rem;
+      padding: 5px;
+      font: inherit;
+    }
+    .plant-chip {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 12px;
+      border-radius: 8px;
+      border: 1px solid #cbd5e1;
+      background: #fff;
+      cursor: pointer;
+      font-size: 0.88rem;
+      font-weight: 600;
+      transition: all 0.15s ease;
+      text-align: left;
+    }
+    .plant-chip.selected {
+      border-color: #d97706;
+      background: #fef3c7;
+      color: #78350f;
+      box-shadow: 0 0 0 1px #d97706;
+    }
+    .chip-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .canvas-wrapper {
+      background: #eef2f0;
+      border: 1px solid #cbd5e1;
+      border-radius: 12px;
+      padding: 16px;
+      text-align: center;
+      overflow-x: auto;
+    }
+    svg {
+      max-width: 100%;
+      height: auto;
+      display: block;
+      margin: 0 auto;
+    }
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 12px 16px;
+      margin-top: 14px;
+      font-size: 0.84rem;
+      color: var(--text);
+    }
+    .companion-legend { display: contents; }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+    .grid-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 16px;
+      margin-top: 20px;
+    }
+    .specs-card {
+      background: var(--primary-light);
+      border-left: 4px solid var(--primary);
+      padding: 16px 18px;
+      border-radius: 8px;
+    }
+    .specs-card.blue-theme {
+      background: var(--secondary-light);
+      border-left-color: var(--secondary);
+    }
+    .specs-card.amber-theme {
+      background: var(--accent-light);
+      border-left-color: var(--accent);
+    }
+    .specs-card h3 {
+      margin: 0 0 8px 0;
+      font-size: 1.05rem;
+    }
+    .specs-card ul {
+      margin: 0;
+      padding-left: 18px;
+      line-height: 1.65;
+      font-size: 0.92rem;
+    }
+    .report-actions {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 14px;
+    }
+    .report-actions button {
+      flex: 0 1 auto;
+      padding: 10px 16px;
+      color: #fff;
+      border-color: var(--primary);
+      background: var(--primary);
+    }
+    .report-actions button:hover { background: #145735; }
+    .report-header { display: none; }
+
+    @page {
+      size: A4 portrait;
+      margin: 12mm;
+    }
+    @media print {
+      * {
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+      }
+      body { padding: 0; background: #fff; }
+      .container {
+        max-width: none;
+        padding: 0;
+        border-radius: 0;
+        box-shadow: none;
+      }
+      .container > header, .controls, .plant-menu-box { display: none; }
+      .report-header {
+        display: block;
+        margin: 0 0 4mm;
+        padding: 5mm 6mm;
+        border: 0;
+        border-radius: 3mm;
+        color: #fff;
+        background: #145735;
+        break-inside: avoid;
+      }
+      .report-header h1 { color: inherit; font-size: 19pt; margin: 0 0 2mm; }
+      .report-header p { margin: 0; font-size: 11pt; }
+      .canvas-wrapper {
+        padding: 3mm;
+        overflow: visible;
+        break-inside: avoid;
+      }
+      #blueprint { width: 100%; height: auto; }
+      .legend { gap: 2mm 4mm; margin-top: 2mm; font-size: 9pt; }
+      .grid-cards {
+        grid-template-columns: 36% minmax(0, 1fr);
+        gap: 3mm;
+        margin-top: 4mm;
+        align-items: start;
+        break-inside: avoid;
+      }
+      .specs-card { padding: 3mm; }
+      .specs-card h3 { font-size: 11pt; margin-bottom: 1.5mm; }
+      .specs-card ul { font-size: 9.5pt; line-height: 1.45; }
+      .specs-card li + li { margin-top: 1mm; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>ผังออกแบบระบบน้ำและเมนูเลือกพืชแซมแปลง <strong>เลมอนยูเรก้า (Lemon / มะนาวเหลือง)</strong> และ <strong>มะนาว (Lime)</strong><br>(1.0 × 2.3 เมตร)</h1>
+      <p class="subtitle">แบบแปลนมาตราส่วนจริง (กว้าง 100 ซม. × ยาว 230 ซม.) — เพิ่มตัวเลือกพืชแซมสมุนไพร ผักใบ และพืชบำรุงดิน</p>
+      <div class="report-actions">
+        <button type="button" id="export-pdf">ส่งออก PDF</button>
+      </div>
+    </header>
+    <section class="report-header">
+      <h1>ผังระบบน้ำและการปลูกพืชแซม</h1>
+      <p id="report-summary"></p>
+    </section>
+
+    <div class="controls">
+      <div class="control-group">
+        <label for="crop-select">1. ชนิดต้นหลัก</label>
+        <select id="crop-select" class="crop-select" onchange="setCrop(this.value)">
+          <option value="lemon">เลมอนยูเรก้า (Lemon / มะนาวเหลือง)</option>
+          <option value="lime">มะนาว (Lime)</option>
+        </select>
+      </div>
+      <div class="control-group">
+        <label>2. รูปแบบระบบน้ำ</label>
+        <div class="btn-group">
+          <button id="sys-drip" class="active" onclick="setSystem('drip')">น้ำหยด</button>
+          <button id="sys-360" onclick="setSystem('360')">สปริงเกอร์ 360°</button>
+          <button id="sys-180" onclick="setSystem('180')">สปริงเกอร์ 180°</button>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label>3. จำนวนต้นหลัก</label>
+        <div class="btn-group">
+          <button id="tree-1" class="active" onclick="setTrees(1)">1 ต้น (กึ่งกลาง)</button>
+          <button id="tree-2" onclick="setTrees(2)">2 ต้น (ระยะ 115 ซม.)</button>
+        </div>
+      </div>
+
+      <div class="control-group" id="stage-group">
+        <label>4. ระยะต้น (เฉพาะน้ำหยด)</label>
+        <div class="btn-group">
+          <button id="stage-young" class="active" onclick="setStage('young')">ปลูกใหม่ (2 หัว)</button>
+          <button id="stage-mature" onclick="setStage('mature')">ต้นโต (4 หัว)</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Menu for selecting companion plants -->
+    <div class="plant-menu-box">
+      <div class="plant-menu-header">
+        <strong>5. เมนูเลือกชนิดพืชแซม (กดเลือก/ยกเลิกได้ตามต้องการ)</strong>
+        <div class="quick-actions">
+          <button class="quick-btn" onclick="selectPreset('none')">ไม่ปลูกพืชแซม</button>
+          <button class="quick-btn" onclick="selectPreset('herbs')">สมุนไพรไล่แมลง</button>
+          <button class="quick-btn" onclick="selectPreset('soil')">บำรุงดิน / คุมดิน</button>
+          <button class="quick-btn" onclick="selectPreset('all')">เลือกทั้งหมด</button>
+        </div>
+      </div>
+      <div class="plant-chips" id="plant-chips"></div>
+      <small>กรอกจำนวนต้นของแต่ละชนิดที่เลือก จุดสี 1 จุดแทนพืชแซม 1 ต้น ตำแหน่งในผังเป็นตัวอย่างการจัดวาง</small>
+    </div>
+
+    <div class="canvas-wrapper">
+      <svg id="blueprint" viewBox="0 0 840 440" xmlns="http://www.w3.org/2000/svg"></svg>
+      <div class="legend">
+        <div class="legend-item"><span class="dot" style="background:#16a34a; border:2px solid #fff;"></span> <span id="crop-legend">เลมอนยูเรก้า (Lemon / มะนาวเหลือง)</span></div>
+        <div id="companion-legend" class="companion-legend"></div>
+        <div class="legend-item"><span class="dot" style="background:#1e293b;"></span> ท่อ PE 16/20 มม.</div>
+        <div class="legend-item"><span class="dot" style="background:#0284c7;"></span> หัวน้ำหยด / สปริงเกอร์</div>
+      </div>
+    </div>
+
+    <div class="grid-cards">
+      <div id="specs" class="specs-card"></div>
+      <div id="companion-specs" class="specs-card amber-theme"></div>
+    </div>
+  </div>
+
+  <script>
+    const PLANT_CATALOG = [
+      {
+        id: 'marigold',
+        name: 'ดาวเรือง',
+        color: '#f59e0b',
+        role: 'ลดไส้เดือนฝอยในดิน และล่อแมลงตัวห้ำช่วยคุมเพลี้ย'
+      },
+      {
+        id: 'basil',
+        name: 'โหระพา / กะเพรา',
+        color: '#10b981',
+        role: 'กลิ่นหอมช่วยพรางใบอ่อนของต้นหลักจากแมลง เก็บยอดกินได้เรื่อยๆ'
+      },
+      {
+        id: 'mint',
+        name: 'สะระแหน่',
+        color: '#34d399',
+        role: 'คลุมผิวดินลดการระเหยของน้ำ รากตื้นไม่รบกวนรากของต้นหลัก'
+      },
+      {
+        id: 'veggies',
+        name: 'ต้นหอม / ผักชี / สลัด',
+        color: '#84cc16',
+        role: 'ผักอายุสั้น (30–45 วัน) เก็บไว ไม่แย่งปุ๋ยระยะยาว'
+      },
+      {
+        id: 'lemongrass',
+        name: 'ตะไคร้หอม (มุมแปลง)',
+        color: '#0d9488',
+        role: 'ปลูกเฉพาะมุมหัว-ท้ายแปลง ช่วยไล่แมลงรบกวนบางชนิด'
+      },
+      {
+        id: 'legume',
+        name: 'ถั่วพุ่มเตี้ย / ถั่วเขียว',
+        color: '#a3e635',
+        role: 'พืชตระกูลถั่วช่วยตรึงไนโตรเจนบำรุงดิน ตัดสับคลุมโคนได้'
+      },
+      {
+        id: 'gotukola',
+        name: 'ผักโขม / บัวบก',
+        color: '#65a30d',
+        role: 'คลุมดินบริเวณขอบหรือพื้นที่ว่าง รากตื้น เก็บเกี่ยวใช้ประโยชน์ได้'
+      }
+    ];
+
+    const CROPS = {
+      lemon: { name: 'เลมอนยูเรก้า', label: 'เลมอนยูเรก้า (Lemon / มะนาวเหลือง)', mapName: 'เลมอน' },
+      lime: { name: 'มะนาว', label: 'มะนาว (Lime)', mapName: 'มะนาว' }
+    };
+
+    const state = {
+      crop: 'lemon',
+      system: 'drip',
+      trees: 1,
+      stage: 'young',
+      selectedPlants: ['marigold', 'basil'],
+      plantCounts: {}
+    };
+
+    const SCALE = 3;
+    const BED_X = 80;
+    const BED_Y = 60;
+    const BED_W = 230 * SCALE;
+    const BED_H = 100 * SCALE;
+
+    function plantCount(id, defaultCount) {
+      return state.plantCounts[id] ?? defaultCount;
+    }
+
+    function defaultPlantCount(id) {
+      if (id === 'marigold') return 4;
+      if (state.trees === 2 && ['basil', 'mint'].includes(id)) return 1;
+      return 2;
+    }
+
+    function setPlantCount(input, id) {
+      if (input.validity.valid) {
+        state.plantCounts[id] = input.valueAsNumber;
+        render();
+      }
+    }
+
+    function initPlantMenu() {
+      const container = document.getElementById('plant-chips');
+      container.innerHTML = PLANT_CATALOG.map(p => {
+        const isSel = state.selectedPlants.includes(p.id);
+        return `
+          <div class="plant-option">
+          <button aria-pressed="${isSel}" type="button" id="chip-${p.id}" class="plant-chip ${isSel ? 'selected' : ''}" onclick="togglePlant('${p.id}')">
+            <span class="chip-dot" style="background:${p.color};"></span>
+            <span>${isSel ? '✓ ' : '+ '}${p.name}</span>
+          </button>
+          ${isSel ? `
+            <label class="plant-count">
+              <input type="number" min="1" max="9999" step="1" required
+                aria-label="จำนวนต้น ${p.name}" value="${plantCount(p.id, defaultPlantCount(p.id))}"
+                oninput="setPlantCount(this, '${p.id}')"
+                onblur="if (!this.validity.valid) this.value = plantCount('${p.id}', defaultPlantCount('${p.id}'))">
+              ต้น
+            </label>
+          ` : ''}
+          </div>
+        `;
+      }).join('');
+    }
+
+    function togglePlant(id) {
+      const idx = state.selectedPlants.indexOf(id);
+      if (idx >= 0) {
+        state.selectedPlants.splice(idx, 1);
+      } else {
+        state.selectedPlants.push(id);
+      }
+      initPlantMenu();
+      render();
+    }
+
+    function selectPreset(mode) {
+      if (mode === 'none') state.selectedPlants = [];
+      else if (mode === 'herbs') state.selectedPlants = ['marigold', 'basil', 'mint', 'lemongrass'];
+      else if (mode === 'soil') state.selectedPlants = ['marigold', 'legume', 'gotukola'];
+      else if (mode === 'all') state.selectedPlants = PLANT_CATALOG.map(p => p.id);
+      initPlantMenu();
+      render();
+    }
+
+    function setCrop(crop) {
+      state.crop = crop;
+      render();
+    }
+
+    function setSystem(sys) {
+      state.system = sys;
+      ['drip', '360', '180'].forEach(s => {
+        const btn = document.getElementById('sys-' + s);
+        btn.classList.toggle('active', s === sys);
+        btn.classList.toggle('blue', s === sys && sys !== 'drip');
+      });
+      document.getElementById('stage-group').style.opacity = sys === 'drip' ? '1' : '0.4';
+      document.getElementById('stage-group').style.pointerEvents = sys === 'drip' ? 'auto' : 'none';
+      render();
+    }
+
+    function setTrees(count) {
+      state.trees = count;
+      document.getElementById('tree-1').classList.toggle('active', count === 1);
+      document.getElementById('tree-2').classList.toggle('active', count === 2);
+      initPlantMenu();
+      render();
+    }
+
+    function setStage(stg) {
+      state.stage = stg;
+      document.getElementById('stage-young').classList.toggle('active', stg === 'young');
+      document.getElementById('stage-mature').classList.toggle('active', stg === 'mature');
+      render();
+    }
+
+    function drawCompanionPlants(treeCms, treeCy, pipeY) {
+      const plants = PLANT_CATALOG.filter(plant => state.selectedPlants.includes(plant.id))
+        .map(plant => ({ ...plant, count: plantCount(plant.id, defaultPlantCount(plant.id)) }));
+      document.getElementById('companion-legend').innerHTML = plants.map(plant => `
+        <div class="legend-item"><span class="dot" style="background:${plant.color};"></span>
+          ${plant.name} · ${plant.count} ต้น
+        </div>
+      `).join('');
+      const total = plants.reduce((sum, plant) => sum + plant.count, 0);
+      if (!total) return '';
+
+      const treeXs = treeCms.map(cm => BED_X + cm * SCALE);
+      const equipment = treeXs.flatMap((x, index) => {
+        if (state.system === 'drip') {
+          const offsets = state.stage === 'young'
+            ? [[-18, 0], [18, 0]]
+            : [[-32, 0], [32, 0], [0, -32], [0, 32]];
+          return offsets.map(([dx, dy]) => [x + dx * SCALE, treeCy + dy * SCALE]);
+        }
+        if (state.system === '360') {
+          const offset = state.trees === 1 || index === 0 ? 18 : -18;
+          const sprinklerX = x + offset * SCALE;
+          return [[sprinklerX, treeCy], [sprinklerX, pipeY - 32]];
+        }
+        return [[x, BED_Y + 6]];
+      });
+      const margin = 16;
+      const width = BED_W - margin * 2;
+      const top = BED_Y + margin;
+      const height = pipeY - margin - top;
+      let pitch = Math.min(24, Math.sqrt(width * height / total));
+      let positions;
+      do {
+        positions = [];
+        for (let y = top; y <= top + height; y += pitch) {
+          for (let x = BED_X + margin; x <= BED_X + margin + width; x += pitch) {
+            const coversTree = treeXs.some(tx =>
+              (Math.abs(x - tx) < 38 && Math.abs(y - treeCy) < 38) ||
+              (Math.abs(x - tx) < 78 && Math.abs(y - (treeCy - 30)) < 16)
+            );
+            const coversEquipment = equipment.some(([ex, ey]) =>
+              Math.abs(x - ex) < 20 && Math.abs(y - ey) < 20
+            );
+            if (!coversTree && !coversEquipment) positions.push({ x, y });
+          }
+        }
+        if (positions.length < total) pitch *= 0.85;
+      } while (positions.length < total);
+
+      const radius = Math.min(10, pitch * 0.46);
+      const markers = [];
+      const spreadPoints = total <= 200;
+      const centerX = BED_X + BED_W / 2;
+      const centerY = top + height / 2;
+      // Start near the middle, then fill the largest gaps between planted points.
+      const scores = spreadPoints
+        ? positions.map(({ x, y }) => -((x - centerX) ** 2 + (y - centerY) ** 2))
+        : [];
+      const maxCount = Math.max(...plants.map(plant => plant.count));
+      for (let index = 0; index < maxCount; index++) {
+        for (const plant of plants) {
+          if (index >= plant.count) continue;
+          let slot = Math.floor((markers.length + 0.5) * positions.length / total);
+          if (spreadPoints) {
+            slot = scores.reduce((best, score, candidate) =>
+              score > scores[best] ? candidate : best, 0
+            );
+          }
+          const { x, y } = positions[slot];
+          if (spreadPoints) {
+            positions.forEach((point, candidate) => {
+              const distance = (point.x - x) ** 2 + (point.y - y) ** 2;
+              scores[candidate] = markers.length === 0 ? distance : Math.min(scores[candidate], distance);
+            });
+            scores[slot] = -Infinity;
+          }
+
+          markers.push(`<circle data-plant="${plant.id}" cx="${x.toFixed(2)}"
+            cy="${y.toFixed(2)}" r="${radius}" fill="${plant.color}"
+            stroke="#fff" stroke-width="${Math.min(1.5, radius * 0.35)}">${total <= 80 ? `<title>${plant.name} ต้นที่ ${index + 1}</title>` : ''}</circle>`);
+        }
+      }
+      return `<g aria-label="พืชแซม ${total} ต้น">${markers.join('')}</g>`;
+    }
+
+    function render() {
+      const crop = CROPS[state.crop];
+      document.getElementById('crop-legend').textContent = crop.label;
+      const irrigation = { drip: 'น้ำหยด', '360': 'มินิสปริงเกอร์ 360°', '180': 'มินิสปริงเกอร์ 180°' };
+      document.getElementById('report-summary').textContent =
+        `${crop.label} ${state.trees} ต้น · แปลง 1.0 × 2.3 เมตร · ${irrigation[state.system]}`;
+      const svg = document.getElementById('blueprint');
+      let html = `
+        <defs>
+          <pattern id="grid" width="30" height="30" patternUnits="userSpaceOnUse">
+            <path d="M 30 0 L 0 0 0 30" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+          </pattern>
+        </defs>
+        <rect x="${BED_X - 8}" y="${BED_Y - 8}" width="${BED_W + 16}" height="${BED_H + 16}" rx="6" fill="#94a3b8" />
+        <rect x="${BED_X}" y="${BED_Y}" width="${BED_W}" height="${BED_H}" fill="#7c583a" />
+        <rect x="${BED_X}" y="${BED_Y}" width="${BED_W}" height="${BED_H}" fill="url(#grid)" />
+      `;
+
+      // Dimension Labels
+      html += `
+        <line x1="${BED_X}" y1="${BED_Y - 25}" x2="${BED_X + BED_W}" y2="${BED_Y - 25}" stroke="#334155" stroke-width="1.5" />
+        <line x1="${BED_X}" y1="${BED_Y - 32}" x2="${BED_X}" y2="${BED_Y - 18}" stroke="#334155" stroke-width="1.5" />
+        <line x1="${BED_X + BED_W}" y1="${BED_Y - 32}" x2="${BED_X + BED_W}" y2="${BED_Y - 18}" stroke="#334155" stroke-width="1.5" />
+        <text x="${BED_X + BED_W / 2}" y="${BED_Y - 31}" text-anchor="middle" font-size="14" font-weight="bold" fill="#1e293b">ความยาวแปลง 230 ซม. (2.3 เมตร)</text>
+
+        <line x1="${BED_X - 25}" y1="${BED_Y}" x2="${BED_X - 25}" y2="${BED_Y + BED_H}" stroke="#334155" stroke-width="1.5" />
+        <line x1="${BED_X - 32}" y1="${BED_Y}" x2="${BED_X - 18}" y2="${BED_Y}" stroke="#334155" stroke-width="1.5" />
+        <line x1="${BED_X - 32}" y1="${BED_Y + BED_H}" x2="${BED_X - 18}" y2="${BED_Y + BED_H}" stroke="#334155" stroke-width="1.5" />
+        <text x="${BED_X - 36}" y="${BED_Y + BED_H / 2}" text-anchor="middle" font-size="14" font-weight="bold" fill="#1e293b" transform="rotate(-90 ${BED_X - 36} ${BED_Y + BED_H / 2})">กว้าง 100 ซม. (1 ม.)</text>
+      `;
+
+      const treeCms = state.trees === 1 ? [115] : [57.5, 172.5];
+      const treeCy = BED_Y + BED_H / 2;
+
+      // Water Coverage Zones
+      if (state.system === 'drip') {
+        treeCms.forEach(tCm => {
+          const tx = BED_X + tCm * SCALE;
+          const offsets = state.stage === 'young'
+            ? [[-18, 0], [18, 0]]
+            : [[-32, 0], [32, 0], [0, -32], [0, 32]];
+          offsets.forEach(([dx, dy]) => {
+            html += `<circle cx="${tx + dx * SCALE}" cy="${treeCy + dy * SCALE}" r="${14 * SCALE}" fill="rgba(56, 189, 248, 0.35)" stroke="#38bdf8" stroke-dasharray="3,3" stroke-width="1.5" />`;
+          });
+        });
+      } else if (state.system === '360') {
+        treeCms.forEach((tCm, idx) => {
+          const offsetCm = state.trees === 1 ? 18 : (idx === 0 ? 18 : -18);
+          const sx = BED_X + (tCm + offsetCm) * SCALE;
+          const radiusCm = state.trees === 1 ? 48 : 42;
+          html += `<circle cx="${sx}" cy="${treeCy}" r="${radiusCm * SCALE}" fill="rgba(56, 189, 248, 0.32)" stroke="#0284c7" stroke-dasharray="5,4" stroke-width="2" />`;
+        });
+      } else if (state.system === '180') {
+        if (state.trees === 1) {
+          const tx = BED_X + 115 * SCALE;
+          const rPx = 65 * SCALE;
+          html += `<path d="M ${tx - rPx} ${BED_Y + 6} A ${rPx} ${rPx} 0 0 0 ${tx + rPx} ${BED_Y + 6} Z" fill="rgba(56, 189, 248, 0.3)" stroke="#0284c7" stroke-dasharray="5,4" stroke-width="2" />`;
+          html += `<path d="M ${tx - rPx} ${BED_Y + BED_H - 6} A ${rPx} ${rPx} 0 0 1 ${tx + rPx} ${BED_Y + BED_H - 6} Z" fill="rgba(56, 189, 248, 0.3)" stroke="#0284c7" stroke-dasharray="5,4" stroke-width="2" />`;
+        } else {
+          treeCms.forEach(tCm => {
+            const tx = BED_X + tCm * SCALE;
+            const rPx = 60 * SCALE;
+            html += `<path d="M ${tx - rPx} ${BED_Y + 6} A ${rPx} ${rPx} 0 0 0 ${tx + rPx} ${BED_Y + 6} Z" fill="rgba(56, 189, 248, 0.32)" stroke="#0284c7" stroke-dasharray="5,4" stroke-width="2" />`;
+          });
+        }
+      }
+
+      const pipeY = BED_Y + BED_H - 22;
+
+      // Main PE Pipe
+      html += `
+        <line x1="${BED_X - 20}" y1="${pipeY}" x2="${BED_X + BED_W - 15}" y2="${pipeY}" stroke="#0f172a" stroke-width="7" stroke-linecap="round" />
+        <text x="${BED_X + 10}" y="${pipeY + 16}" font-size="11" fill="#f8fafc" font-weight="bold">ท่อ PE 16/20 มม.</text>
+      `;
+
+      // Emitters / Sprinklers
+      if (state.system === 'drip') {
+        treeCms.forEach(tCm => {
+          const tx = BED_X + tCm * SCALE;
+          const offsets = state.stage === 'young'
+            ? [[-18, 0], [18, 0]]
+            : [[-32, 0], [32, 0], [0, -32], [0, 32]];
+          offsets.forEach(([dx, dy]) => {
+            const ex = tx + dx * SCALE;
+            const ey = treeCy + dy * SCALE;
+            html += `
+              <path d="M ${ex} ${pipeY} L ${ex} ${ey}" stroke="#334155" stroke-width="2" fill="none" />
+              <circle cx="${ex}" cy="${ey}" r="6" fill="#0284c7" stroke="#fff" stroke-width="1.5" />
+            `;
+          });
+        });
+      } else if (state.system === '360') {
+        treeCms.forEach((tCm, idx) => {
+          const offsetCm = state.trees === 1 ? 18 : (idx === 0 ? 18 : -18);
+          const sx = BED_X + (tCm + offsetCm) * SCALE;
+          const valveY = pipeY - 32;
+          html += `
+            <line x1="${sx}" y1="${pipeY}" x2="${sx}" y2="${treeCy}" stroke="#334155" stroke-width="2.5" />
+            <rect x="${sx - 6}" y="${valveY - 8}" width="12" height="16" rx="2" fill="#ef4444" stroke="#fff" stroke-width="1" />
+            <circle cx="${sx}" cy="${treeCy}" r="8" fill="#0284c7" stroke="#fff" stroke-width="2" />
+            <circle cx="${sx}" cy="${treeCy}" r="3" fill="#fff" />
+          `;
+        });
+      } else if (state.system === '180') {
+        if (state.trees === 1) {
+          const tx = BED_X + 115 * SCALE;
+          html += `
+            <line x1="${tx}" y1="${pipeY}" x2="${tx}" y2="${BED_Y + BED_H - 6}" stroke="#334155" stroke-width="2.5" />
+            <path d="M ${tx - 9} ${BED_Y + BED_H - 6} A 9 9 0 0 1 ${tx + 9} ${BED_Y + BED_H - 6} Z" fill="#0284c7" stroke="#fff" stroke-width="1.5" />
+            <path d="M ${tx - 45} ${pipeY} L ${tx - 45} ${BED_Y + 6} L ${tx} ${BED_Y + 6}" stroke="#334155" stroke-width="2" fill="none" />
+            <path d="M ${tx - 9} ${BED_Y + 6} A 9 9 0 0 0 ${tx + 9} ${BED_Y + 6} Z" fill="#0284c7" stroke="#fff" stroke-width="1.5" />
+          `;
+        } else {
+          treeCms.forEach(tCm => {
+            const tx = BED_X + tCm * SCALE;
+            html += `
+              <path d="M ${tx - 35} ${pipeY} L ${tx - 35} ${BED_Y + 6} L ${tx} ${BED_Y + 6}" stroke="#334155" stroke-width="2" fill="none" />
+              <path d="M ${tx - 9} ${BED_Y + 6} A 9 9 0 0 0 ${tx + 9} ${BED_Y + 6} Z" fill="#0284c7" stroke="#fff" stroke-width="1.5" />
+            `;
+          });
+        }
+      }
+
+      html += drawCompanionPlants(treeCms, treeCy, pipeY);
+
+      // Render Lemon Trees on top
+      treeCms.forEach((tCm, i) => {
+        const tx = BED_X + tCm * SCALE;
+        html += `
+          <circle cx="${tx}" cy="${treeCy}" r="24" fill="rgba(22, 163, 74, 0.35)" stroke="#22c55e" stroke-width="1.5" />
+          <circle cx="${tx}" cy="${treeCy}" r="12" fill="#16a34a" stroke="#fff" stroke-width="2" />
+          <text x="${tx}" y="${treeCy - 30}" text-anchor="middle" font-size="12" font-weight="bold" fill="#ffffff" style="text-shadow: 0 1px 3px #000;">${crop.mapName} #${i + 1} (${tCm} ซม.)</text>
+        `;
+      });
+
+      // Bottom Spacing Markers
+      if (state.trees === 1) {
+        const midX = BED_X + 115 * SCALE;
+        html += `
+          <line x1="${BED_X}" y1="${BED_Y + BED_H + 22}" x2="${midX}" y2="${BED_Y + BED_H + 22}" stroke="#475569" stroke-width="1.5" />
+          <text x="${(BED_X + midX)/2}" y="${BED_Y + BED_H + 38}" text-anchor="middle" font-size="12" fill="#334155">115 ซม.</text>
+          <line x1="${midX}" y1="${BED_Y + BED_H + 22}" x2="${BED_X + BED_W}" y2="${BED_Y + BED_H + 22}" stroke="#475569" stroke-width="1.5" />
+          <text x="${(midX + BED_X + BED_W)/2}" y="${BED_Y + BED_H + 38}" text-anchor="middle" font-size="12" fill="#334155">115 ซม.</text>
+        `;
+      } else {
+        const t1X = BED_X + 57.5 * SCALE;
+        const t2X = BED_X + 172.5 * SCALE;
+        html += `
+          <line x1="${BED_X}" y1="${BED_Y + BED_H + 22}" x2="${t1X}" y2="${BED_Y + BED_H + 22}" stroke="#475569" stroke-width="1.5" />
+          <text x="${(BED_X + t1X)/2}" y="${BED_Y + BED_H + 38}" text-anchor="middle" font-size="12" fill="#334155">57.5 ซม.</text>
+          <line x1="${t1X}" y1="${BED_Y + BED_H + 22}" x2="${t2X}" y2="${BED_Y + BED_H + 22}" stroke="#475569" stroke-width="1.5" />
+          <text x="${(t1X + t2X)/2}" y="${BED_Y + BED_H + 38}" text-anchor="middle" font-size="12" fill="#334155">ระยะห่าง 115 ซม.</text>
+          <line x1="${t2X}" y1="${BED_Y + BED_H + 22}" x2="${BED_X + BED_W}" y2="${BED_Y + BED_H + 22}" stroke="#475569" stroke-width="1.5" />
+          <text x="${(t2X + BED_X + BED_W)/2}" y="${BED_Y + BED_H + 38}" text-anchor="middle" font-size="12" fill="#334155">57.5 ซม.</text>
+        `;
+      }
+
+      svg.innerHTML = html;
+      updateSpecs();
+    }
+
+    function updateSpecs() {
+      const crop = CROPS[state.crop];
+      const card = document.getElementById('specs');
+      card.className = 'specs-card' + (state.system !== 'drip' ? ' blue-theme' : '');
+
+      if (state.system === 'drip') {
+        const totalHeads = state.trees * (state.stage === 'young' ? 2 : 4);
+        const dist = state.stage === 'young' ? '15–20 ซม.' : '30–40 ซม.';
+        card.innerHTML = `
+          <h3>ระบบน้ำหยด (${state.trees} ต้น / ${state.stage === 'young' ? 'ปลูกใหม่' : 'ต้นโต'})</h3>
+          <ul>
+            <li><strong>จำนวนหัว:</strong> <strong>${totalHeads} หัว</strong> (รุ่นชดเชยแรงดัน 2 ลิตร/ชม.)</li>
+            <li><strong>ระยะปัก:</strong> ห่างโคน${crop.mapName} <strong>${dist}</strong></li>
+            <li><strong>จุดเด่น:</strong> คุมความชื้นแม่นยำ ใบ${crop.mapName}ไม่เปียก ลดโรคแคงเกอร์</li>
+          </ul>
+        `;
+      } else if (state.system === '360') {
+        const diam = state.trees === 1 ? '90–100 ซม.' : '80–85 ซม.';
+        card.innerHTML = `
+          <h3>มินิสปริงเกอร์ 360° (${state.trees} ต้น)</h3>
+          <ul>
+            <li><strong>จำนวนหัว:</strong> <strong>${state.trees} หัว</strong> ปักเยื้องโคนต้น 15–20 ซม. (ก้านเตี้ย 10–15 ซม.)</li>
+            <li><strong>การคุมรัศมี:</strong> ติด <strong>มินิวาล์วหรี่น้ำ</strong> คุมวงน้ำไม่เกิน <strong>${diam}</strong></li>
+            <li><strong>ข้อดีเมื่อปลูกพืชแซม:</strong> ช่วยเพิ่มความชื้นให้สะระแหน่และผักใบเขียวรอบแปลงได้ดี</li>
+          </ul>
+        `;
+      } else {
+        card.innerHTML = `
+          <h3>มินิสปริงเกอร์ 180° (${state.trees} ต้น)</h3>
+          <ul>
+            <li><strong>จำนวนหัว:</strong> <strong>2 หัว</strong> ปักขอบแปลงหันเข้าหากลางแปลง</li>
+            <li><strong>การตั้งค่า:</strong> หรี่รัศมีไม่เกิน 60–65 ซม. ไม่ให้น้ำล้นขอบแปลง 1 เมตร</li>
+          </ul>
+        `;
+      }
+
+      const compCard = document.getElementById('companion-specs');
+      if (state.selectedPlants.length === 0) {
+        compCard.innerHTML = `
+          <h3>ปลูก${crop.name}ล้วน (ไม่ปลูกพืชแซม)</h3>
+          <ul>
+            <li><strong>ข้อดี:</strong> โล่ง โปร่ง อากาศถ่ายเทดี ดูแลทรงพุ่มและใส่ปุ๋ยโคนต้นได้สะดวกที่สุด</li>
+            <li><strong>คำแนะนำ:</strong> สามารถใช้ฟางข้าวหรือใบไม้แห้งคลุมโคนต้นบางๆ แทนได้</li>
+          </ul>
+        `;
+      } else {
+        const totalPlants = state.selectedPlants.reduce(
+          (total, id) => total + plantCount(id, defaultPlantCount(id)), 0
+        );
+        const itemsHtml = state.selectedPlants.map(id => {
+          const p = PLANT_CATALOG.find(item => item.id === id);
+          return `<li><strong>${p.name} (${plantCount(id, defaultPlantCount(id))} ต้น)</strong> — ${p.role}</li>`;
+        }).join('');
+        compCard.innerHTML = `
+          <h3>พืชแซมที่เลือกไว้ (${state.selectedPlants.length} ชนิด รวม ${totalPlants} ต้น)</h3>
+          <ul>
+            ${itemsHtml}
+            <li><strong>ข้อห้าม:</strong> ห้ามปลูก <em>พริก มะเขือ</em> และ <em>พืชหัว/ไม้เลื้อย</em></li>
+          </ul>
+        `;
+      }
+    }
+
+    initPlantMenu();
+    render();
+    document.getElementById('export-pdf').addEventListener('click', () => window.print());
+  </script>
+</body>
+</html>
