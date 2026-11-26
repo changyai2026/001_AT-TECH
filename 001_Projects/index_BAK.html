@@ -1,0 +1,1315 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบคำนวณงบประมาณโครงการ | Project Budget Calculator</title>
+    
+    <!-- Google Fonts: Prompt สำหรับหัวข้อและตัวเลข, Sarabun สำหรับเนื้อหา -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&family=Sarabun:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    
+    <!-- Lucide Icons สำหรับไอคอนที่ทันสมัย -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+
+    <script>
+        // ตั้งค่า Tailwind CSS เพิ่มเติมสำหรับฟอนต์และโทนสี
+        if (window.tailwind) tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Prompt', 'Sarabun', 'sans-serif'],
+                        body: ['Sarabun', 'Prompt', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            800: '#1e40af',
+                            900: '#1e3a8a',
+                        }
+                    }
+                }
+            }
+        };
+    </script>
+
+    <style>
+        body {
+            font-family: 'Prompt', 'Sarabun', sans-serif;
+        }
+        /* ซ่อนลูกศรขึ้นลงในช่อง input type="number" เพื่อความสวยงาม */
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type="number"] {
+            -moz-appearance: textfield;
+        }
+
+        .budget-metrics {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: .75rem;
+        }
+        .budget-metrics > div { gap: .5rem; }
+        .budget-metrics > div > span:last-child { text-align: right; }
+        .budget-metrics span, .highlight-amount, table { font-variant-numeric: tabular-nums; }
+        .highlight-amount { overflow-wrap: anywhere; }
+        .app-header {
+            background: linear-gradient(115deg, #102445, #174369);
+            color: #fff;
+            border-bottom: 3px solid #2bbfaa;
+        }
+        .app-header > div { padding-block: 1rem; gap: 1rem; }
+        .app-header button { min-height: 38px; }
+        .app-header button:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+        @media screen {
+            body {
+                background: radial-gradient(ellipse at top right, #e3f5f2, transparent 45rem), #f1f5fa;
+            }
+            .surface { box-shadow: 0 8px 24px rgba(16, 36, 69, .055); }
+        }
+        @media screen and (max-width: 639px) {
+            .budget-metrics { grid-template-columns: minmax(0, 1fr); }
+            .app-header button { min-height: 44px; }
+            .budget-results table { min-width: 28rem; }
+        }
+        .hidden { display: none !important; }
+        #budgetPrintReport { display: none; }
+        @media print {
+            @page { size: A4 portrait; margin: 9mm; }
+            body {
+                display: block !important;
+                min-height: 0 !important;
+                margin: 0 !important;
+                background: #fff !important;
+            }
+            body > :not(#budgetPrintReport) { display: none !important; }
+            #budgetPrintReport {
+                display: block;
+                width: 192mm;
+                zoom: var(--report-scale, 1);
+                font: 9pt/1.32 'Sarabun', 'Noto Sans Thai', Tahoma, sans-serif;
+                color: #172c42;
+                overflow-wrap: anywhere;
+            }
+            #budgetPrintReport h1 { font-size: 16pt; margin: 0 0 1mm; }
+            #budgetPrintReport h2 {
+                font-size: 10.5pt;
+                margin: 2.3mm 0 0.8mm;
+                break-after: avoid;
+            }
+            #budgetPrintReport p { margin: 0 0 1mm; }
+            #budgetPrintReport header { border-bottom: 1px solid #23796f; padding-bottom: 2mm; }
+            #budgetPrintReport table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+            #budgetPrintReport thead { display: table-header-group; }
+            #budgetPrintReport tr { break-inside: avoid; }
+            #budgetPrintReport th, #budgetPrintReport td {
+                border-bottom: 1px solid #cbd5e1;
+                padding: 0.65mm 1.5mm;
+                text-align: left;
+                vertical-align: top;
+            }
+            #budgetPrintReport thead th { background: #eaf4f3; print-color-adjust: exact; }
+            #budgetPrintReport .report-number { text-align: right; font-variant-numeric: tabular-nums; }
+            #budgetPrintReport .report-key { color: #12645b; font-weight: 700; }
+            #budgetPrintReport .report-warning { color: #a51d22; font-weight: 700; }
+            #budgetPrintReport .report-note { white-space: pre-wrap; }
+            #budgetPrintReport .report-callout {
+                border: 1px solid #ddbc70;
+                background: #fff8e5;
+                padding: 1mm 2mm;
+                margin: 0 0 2mm;
+                break-inside: avoid;
+                print-color-adjust: exact;
+            }
+            #budgetPrintReport .report-overview {
+                display: grid;
+                grid-template-columns: 1.2fr 1fr;
+                gap: 3mm;
+                break-inside: avoid;
+            }
+            #budgetPrintReport .report-notes { margin: 1mm 0; padding-left: 5mm; }
+            #budgetPrintReport .report-notes li { margin-bottom: 0.65mm; break-inside: avoid; }
+            #budgetPrintReport tbody th { font-weight: 500; }
+            #budgetPrintReport .report-total > * { font-weight: 700; background: #eaf4f3; print-color-adjust: exact; }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col justify-between">
+
+    <!-- Header Bar -->
+    <header class="app-header no-print">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 min-h-16 py-2 flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-600 to-emerald-500 flex items-center justify-center text-white shadow-md shrink-0">
+                    <i data-lucide="calculator" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl sm:text-2xl font-bold leading-tight">คำนวณงบประมาณโครงการ</h1>
+                    <p class="text-xs text-sky-100">Project Budget Calculator</p>
+                </div>
+            </div>
+
+            <!-- Action Buttons: Reset, Copy, PDF, Print, CSV -->
+            <div class="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                <button type="button" onclick="resetDefaults()" class="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-2 text-xs sm:text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors cursor-pointer" title="รีเซ็ตค่าเริ่มต้น">
+                    <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+                    <span>รีเซ็ต</span>
+                </button>
+                <button type="button" onclick="copySummary()" class="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-2 text-xs sm:text-sm font-medium text-brand-700 bg-brand-50 hover:bg-brand-100 border border-brand-200 rounded-xl transition-colors cursor-pointer" title="คัดลอกสรุปผลเป็นข้อความ">
+                    <i data-lucide="copy" class="w-4 h-4"></i>
+                    <span>คัดลอกสรุป</span>
+                </button>
+                <div class="h-5 w-px bg-slate-200 mx-0.5 hidden sm:block"></div>
+                <button type="button" id="btnExportPdf" onclick="printReport()" class="inline-flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm font-medium text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-xs transition-colors cursor-pointer" title="เปิดหน้าพิมพ์เพื่อบันทึกรายงานเป็น PDF">
+                    <i data-lucide="file-down" class="w-4 h-4"></i>
+                    <span>บันทึก PDF</span>
+                </button>
+                <button type="button" onclick="printReport()" class="inline-flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm font-medium text-white bg-slate-800 hover:bg-slate-900 rounded-xl shadow-xs transition-colors cursor-pointer" title="สั่งพิมพ์รายงาน">
+                    <i data-lucide="printer" class="w-4 h-4"></i>
+                    <span>พิมพ์</span>
+                </button>
+                <button type="button" onclick="exportToCSV()" class="inline-flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-xs transition-colors cursor-pointer" title="ส่งออกข้อมูลเป็นไฟล์ CSV (เปิดใน Excel ได้ทันที)">
+                    <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
+                    <span>ส่งออก CSV</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <article id="budgetPrintReport"></article>
+
+    <!-- Main Content -->
+    <main id="reportExportArea" class="max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 sm:py-8 flex-grow print-container">
+        
+        <!-- Warning Alert (แสดงเมื่อค่าใช้จ่ายเกินงบประมาณ) -->
+        <div id="overBudgetAlert" class="hidden mb-6 bg-red-50 border-l-4 border-red-500 p-4 rounded-r-2xl shadow-sm transition-all">
+            <div class="flex items-start gap-3">
+                <div class="p-1.5 bg-red-100 text-red-600 rounded-lg shrink-0 mt-0.5">
+                    <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h3 class="text-sm sm:text-base font-bold text-red-800">แจ้งเตือน: งบประมาณค่าใช้จ่ายเกินวงเงินโครงการ!</h3>
+                    <p class="text-xs sm:text-sm text-red-700 mt-1">
+                        ยอดรวมค่าใช้จ่ายคงที่และสัดส่วนเปอร์เซ็นต์สูงกว่างบประมาณสุทธิ ส่งผลให้ <span class="font-semibold underline">งบประมาณค่าวัสดุอุปกรณ์ติดลบ (<span id="alertOverAmount">0</span> บาท)</span> กรุณาปรับลดสัดส่วนค่าใช้จ่ายหรือเพิ่มงบประมาณโครงการ
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="budget-layout grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
+            
+            <!-- Left Column: Input Form (5 Columns on LG) -->
+            <div class="lg:col-span-5 space-y-6 no-print">
+                <div class="surface bg-white rounded-2xl shadow-sm border border-slate-200/80 p-5 sm:p-6">
+                    <div class="flex items-center justify-between pb-4 mb-5 border-b border-slate-100">
+                        <div class="flex items-center gap-2.5">
+                            <span class="w-8 h-8 rounded-lg bg-brand-50 text-brand-600 flex items-center justify-center">
+                                <i data-lucide="sliders-horizontal" class="w-4 h-4"></i>
+                            </span>
+                            <h2 class="text-base sm:text-lg font-semibold text-slate-900">กำหนดข้อมูลและสัดส่วน</h2>
+                        </div>
+                    </div>
+
+                    <form id="budgetForm" class="space-y-5" onsubmit="return false;">
+                        
+                        <!-- ชื่อโครงการ (Optional) -->
+                        <div>
+                            <label for="projectName" class="block text-xs font-medium text-slate-500 mb-1.5">ชื่อโครงการ (สำหรับแสดงในรายงานสรุป)</label>
+                            <input type="text" id="projectName" placeholder="ระบุชื่อโครงการ (ถ้ามี)..." oninput="calculateBudget()"
+                                class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all">
+                        </div>
+
+                        <!-- 1. งบประมาณโครงการรวม -->
+                        <div class="p-4 bg-gradient-to-br from-slate-50 to-brand-50/30 rounded-2xl border border-brand-100">
+                            <label for="totalBudget" class="block text-sm font-semibold text-slate-800 mb-2">
+                                ต้นทุนโครงการ
+                            </label>
+                            <div class="relative">
+                                <input type="number" id="totalBudget" value="55100" min="0" step="0.01" oninput="calculateBudget()"
+                                    class="w-full pl-4 pr-14 py-3 bg-white border border-slate-300 rounded-xl text-xl font-bold text-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition-all shadow-xs">
+                                <span class="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-medium text-slate-400">บาท</span>
+                            </div>
+
+                            <div class="mt-3 pt-3 border-t border-brand-200/60 text-sm space-y-1">
+                                <div class="flex justify-between gap-2">
+                                    <div class="flex items-center gap-2">
+                                        <label for="vatPercent">VAT (%)</label>
+                                        <input type="number" id="vatPercent" value="7" min="0" max="100" step="0.01"
+                                            oninput="calculateBudget()"
+                                            class="w-20 rounded-lg border border-slate-300 bg-white px-2 py-1 text-right">
+                                    </div>
+                                    <span id="vatAmountDisplay">3,857.00 บาท</span>
+                                </div>
+                                <div class="flex justify-between gap-2 font-semibold text-brand-800">
+                                    <span>งบประมาณโครงการรวม (Total Budget) <strong class="block mt-2 font-bold">( ราคาขายโครงการ )</strong></span>
+                                    <output id="totalBudgetDisplay" for="totalBudget" class="text-right">58,957.00 บาท</output>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 2. ค่า VJC (คู่ค้า) -->
+                        <div>
+                            <div class="flex justify-between items-center mb-1.5">
+                                <label for="vjcPercent" class="text-sm font-medium text-slate-700 flex items-center gap-1.5">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+                                    ค่า VJC (คู่ค้า)
+                                </label>
+                                <span id="vjcBahtPreview" class="text-xs font-semibold text-blue-600 bg-blue-50 px-2.5 py-0.5 rounded-md">11,020.00 บาท</span>
+                            </div>
+                            <div class="relative">
+                                <input type="number" id="vjcPercent" value="20" min="0" max="100" step="0.5" oninput="calculateBudget()"
+                                    class="w-full pl-4 pr-12 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-base font-semibold text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all">
+                                <span class="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-slate-400">%</span>
+                            </div>
+                        </div>
+
+                        <!-- 3. ค่าบริหารโครงการ (PM) -->
+                        <div>
+                            <div class="flex justify-between items-center mb-1.5">
+                                <label for="pmPercent" class="text-sm font-medium text-slate-700 flex items-center gap-1.5">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-indigo-500"></span>
+                                    ค่าบริหารโครงการ (PM)
+                                </label>
+                                <span id="pmBahtPreview" class="text-xs font-semibold text-indigo-600 bg-indigo-50 px-2.5 py-0.5 rounded-md">11,020.00 บาท</span>
+                            </div>
+                            <div class="relative">
+                                <input type="number" id="pmPercent" value="20" min="0" max="100" step="0.5" oninput="calculateBudget()"
+                                    class="w-full pl-4 pr-12 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-base font-semibold text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all">
+                                <span class="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-slate-400">%</span>
+                            </div>
+                        </div>
+
+                        <!-- 4. ค่าภาษีหัก ณ ที่จ่าย (WHT) -->
+                        <div>
+                            <div class="flex justify-between items-center mb-1.5">
+                                <label for="whtPercent" class="text-sm font-medium text-slate-700 flex items-center gap-1.5">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                                    ค่าภาษีหัก ณ ที่จ่าย (WHT)
+                                </label>
+                                <span id="whtBahtPreview" class="text-xs font-semibold text-amber-700 bg-amber-50 px-2.5 py-0.5 rounded-md">1,653.00 บาท</span>
+                            </div>
+                            <div class="relative">
+                                <input type="number" id="whtPercent" value="3" min="0" max="100" step="0.5" oninput="calculateBudget()"
+                                    class="w-full pl-4 pr-12 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-base font-semibold text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all">
+                                <span class="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-slate-400">%</span>
+                            </div>
+                        </div>
+
+                        <!-- 5. ค่าวิศวกรโครงการ -->
+                        <div>
+                            <div class="flex justify-between items-center mb-1.5">
+                                <label for="engineerCost" class="text-sm font-medium text-slate-700 flex items-center gap-1.5">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-teal-500"></span>
+                                    ค่าวิศวกรโครงการ
+                                </label>
+                                <span id="engineerPercentPreview" class="text-xs font-semibold text-teal-700 bg-teal-50 px-2.5 py-0.5 rounded-md">31.76%</span>
+                            </div>
+                            <div class="relative">
+                                <input type="number" id="engineerCost" value="17500" min="0" step="100" oninput="calculateBudget()"
+                                    class="w-full pl-4 pr-14 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-base font-semibold text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all">
+                                <span class="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-medium text-slate-400">บาท</span>
+                            </div>
+                        </div>
+
+                    </form>
+                </div>
+            </div>
+
+            <!-- Right Column: Results & Table (7 Columns on LG) -->
+            <div class="budget-results lg:col-span-7 min-w-0 space-y-6">
+                
+                <!-- Highlight Card: งบประมาณค่าวัสดุอุปกรณ์คงเหลือ -->
+                <div id="highlightCard" class="highlight-card-print relative overflow-hidden rounded-2xl bg-gradient-to-br from-brand-700 via-brand-600 to-emerald-600 text-white p-6 sm:p-8 shadow-lg transition-all">
+                    <!-- Decorative Circles -->
+                    <div class="absolute -right-8 -top-8 w-40 h-40 rounded-full bg-white/10 blur-xl pointer-events-none"></div>
+                    <div class="absolute -left-8 -bottom-10 w-36 h-36 rounded-full bg-emerald-400/20 blur-xl pointer-events-none"></div>
+
+                    <div class="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/15 backdrop-blur-xs text-xs font-medium text-white mb-3">
+                                <i data-lucide="package" class="w-3.5 h-3.5"></i>
+                                <span>งบประมาณคงเหลือสำหรับจัดซื้อ</span>
+                            </div>
+                            <h2 class="text-base sm:text-lg font-medium text-blue-100">งบประมาณค่าวัสดุอุปกรณ์คงเหลือ</h2>
+                            <div class="flex items-baseline gap-2.5 mt-1">
+                                <span id="materialAmountDisplay" class="highlight-amount text-4xl sm:text-5xl font-bold tracking-tight">13,907.00</span>
+                                <span class="text-lg sm:text-xl font-medium text-blue-100">บาท</span>
+                            </div>
+                        </div>
+
+                        <div class="sm:text-right bg-white/10 backdrop-blur-xs rounded-2xl p-4 border border-white/15 shrink-0">
+                            <span class="block text-xs text-blue-100 mb-0.5">สัดส่วนต่อเงินสดรับ</span>
+                            <span id="materialPercentDisplay" class="text-2xl sm:text-3xl font-bold text-emerald-200">25.24%</span>
+                            <span id="baseBudgetSubtext" class="block text-[11px] text-blue-100/80 mt-1">จากฐานงบ 55,100.00 บาท</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Summary Metrics Card -->
+                <div class="surface bg-white rounded-2xl shadow-sm border border-slate-200/80 p-5 flex flex-col justify-between">
+                    <div>
+                        <h3 class="text-sm sm:text-base font-semibold text-slate-800 flex items-center gap-2 mb-4">
+                            <i data-lucide="layers" class="w-4 h-4 text-emerald-600"></i>
+                            ภาพรวมโครงสร้างงบประมาณ
+                        </h3>
+                        
+                        <div class="budget-metrics">
+                            <div class="p-3 rounded-xl bg-slate-50 border border-slate-100 flex justify-between items-center">
+                                <div>
+                                    <span class="text-xs text-slate-500 block">งบประมาณโครงการรวม</span>
+                                    <span id="summaryVatTag" class="text-[11px] font-medium text-brand-600">ต้นทุนโครงการ + <span data-vat-rate>VAT 7%</span></span>
+                                </div>
+                                <span id="summaryTotalBudget" class="text-base font-bold text-slate-800">58,957.00 ฿</span>
+                            </div>
+
+                            <div id="summaryVatRow" class="p-3 rounded-xl bg-amber-50/60 border border-amber-100 flex justify-between items-center">
+                                <span class="text-xs text-amber-800 font-medium">ภาษีมูลค่าเพิ่ม (<span data-vat-rate>VAT 7%</span>)</span>
+                                <span id="summaryVatAmount" class="text-sm font-semibold text-amber-700">3,857.00 ฿</span>
+                            </div>
+
+                            <div class="p-3 rounded-xl bg-brand-50/60 border border-brand-100 flex justify-between items-center">
+                                <span class="text-xs text-brand-900 font-semibold">งบสุทธิ (ฐานคำนวณ 100%)</span>
+                                <span id="summaryNetBudget" class="text-base font-bold text-brand-700">55,100.00 ฿</span>
+                            </div>
+
+                            <div class="p-3 rounded-xl bg-slate-50 border border-slate-100 flex justify-between items-center">
+                                <span class="text-xs text-slate-600">รวมค่าดำเนินการและบุคลากร (4 รายการ)</span>
+                                <span id="summaryFixedAndPercentCost" class="text-sm font-semibold text-slate-700">41,193.00 ฿</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                        <span>สถานะงบประมาณ:</span>
+                        <span id="budgetStatusBadge" class="inline-flex items-center gap-1 font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full">
+                            <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i> สมดุล (เพียงพอ)
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Cash Flow & Net Settlement Card (สรุปกระแสเงินสดรับจริงหลังหัก WHT) -->
+                <div class="surface bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
+                    <div class="px-5 py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-2">
+                        <h3 class="text-sm sm:text-base font-semibold text-slate-800 flex items-center gap-2">
+                            <i data-lucide="wallet" class="w-4 h-4 text-emerald-600"></i>
+                            สรุปกระแสเงินสดรับและยอดจัดสรร (Cash Flow &amp; Settlement)
+                        </h3>
+                        <span class="text-xs font-medium text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full">ตรวจสอบยอดรับ-จ่าย</span>
+                    </div>
+                    <div class="p-5 grid grid-cols-1 sm:grid-cols-3 gap-3.5 text-sm">
+                        <div class="p-3.5 rounded-xl bg-slate-50 border border-slate-200/70">
+                            <span class="text-xs text-slate-500 block">ยอดเรียกเก็บรวม VAT</span>
+                            <span id="cashflowBaseNet" class="text-base sm:text-lg font-bold text-slate-800 mt-1 block">58,957.00 ฿</span>
+                            <span id="cashflowVatNote" class="text-[11px] text-slate-400 mt-0.5 block">ยอดก่อน VAT 55,100.00 + VAT 3,857.00 บาท</span>
+                        </div>
+                        <div class="p-3.5 rounded-xl bg-amber-50/60 border border-amber-200/70">
+                            <span class="text-xs text-amber-800 font-medium block">หัก WHT ณ วันส่งงาน (<span id="cashflowWhtPctLabel">3</span>%)</span>
+                            <span id="cashflowWhtDeduction" class="text-base sm:text-lg font-bold text-amber-700 mt-1 block">-1,653.00 ฿</span>
+                            <span class="text-[11px] text-amber-700/80 mt-0.5 block">รับใบ 50 ทวิ แทนเงินสด</span>
+                        </div>
+                        <div class="p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-200/80">
+                            <span class="text-xs text-emerald-900 font-semibold block">เงินสดรับสุทธิ (Net Cash)</span>
+                            <span id="cashflowNetCash" class="text-base sm:text-lg font-bold text-emerald-700 mt-1 block">57,304.00 ฿</span>
+                            <span id="cashflowSettlementStatus" class="text-[11px] text-emerald-700 mt-0.5 block">ยอดจัดสรร 3 ฝ่าย: 57,304.00 ฿</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Summary Table Card -->
+                <div class="surface bg-white rounded-2xl shadow-sm border border-slate-200/80 overflow-hidden">
+                    <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+                        <h3 class="text-sm sm:text-base font-semibold text-slate-800 flex items-center gap-2">
+                            <i data-lucide="table-2" class="w-4 h-4 text-brand-600"></i>
+                            ตารางสรุปรายละเอียดงบประมาณทั้งหมด
+                        </h3>
+                        <span class="text-xs text-slate-400">หน่วย: บาท (THB)</span>
+                    </div>
+                    
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-50/80 text-slate-500 text-xs uppercase tracking-wider border-b border-slate-200">
+                                    <th class="py-3 px-4 sm:px-5 font-semibold">รายการค่าใช้จ่าย</th>
+                                    <th class="py-3 px-3 font-semibold text-center">รูปแบบ</th>
+                                    <th class="py-3 px-3 font-semibold text-right">สัดส่วน (%)</th>
+                                    <th class="py-3 px-4 sm:px-5 font-semibold text-right">จำนวนเงิน (บาท)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="summaryTableBody" class="divide-y divide-slate-100 text-sm">
+                                <!-- Rows will be populated by JS -->
+                            </tbody>
+                            <tfoot>
+                                <tr class="bg-slate-100/80 font-bold text-slate-900 border-t-2 border-slate-200">
+                                    <td colspan="2" class="py-3.5 px-4 sm:px-5">รวมงบประมาณสุทธิทั้งหมด</td>
+                                    <td class="py-3.5 px-3 text-right text-brand-700">100.00%</td>
+                                    <td id="tableTotalAmount" class="py-3.5 px-4 sm:px-5 text-right text-brand-700">55,100.00</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Bottom Full-Width Section: สรุปค่าตอบแทน (Compensation Summary) -->
+        <div class="mt-6 lg:mt-8 surface bg-white rounded-2xl shadow-sm border border-slate-200/80 p-5 sm:p-6">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 mb-5 border-b border-slate-100">
+                <div class="flex items-center gap-2.5">
+                    <span class="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
+                        <i data-lucide="users" class="w-4 h-4"></i>
+                    </span>
+                    <div>
+                        <h3 class="text-base sm:text-lg font-semibold text-slate-900">สรุปค่าตอบแทน (Compensation Summary)</h3>
+                        <p class="text-xs text-slate-500">สัดส่วนคำนวณจากเงินสดรับรวม VAT หลังหัก WHT</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 print-comp-grid">
+                <!-- 1. วิศวกรประจำโครงการ -->
+                <div class="p-4 sm:p-5 rounded-2xl bg-gradient-to-b from-teal-50/70 to-white border border-teal-200/80 flex flex-col justify-between transition-all hover:shadow-sm">
+                    <div>
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-teal-100 text-teal-700">
+                                <i data-lucide="hard-hat" class="w-4 h-4"></i>
+                            </span>
+                            <span id="compEngineerPercent" class="text-xs font-semibold text-teal-700 bg-teal-100/80 px-2.5 py-0.5 rounded-full">30.54%</span>
+                        </div>
+                        <h4 class="text-sm sm:text-base font-semibold text-slate-800">1. วิศวกรประจำโครงการ</h4>
+                        <p class="text-xs text-slate-500 mt-0.5">จากค่าวิศวกรโครงการ</p>
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-teal-100">
+                        <div class="flex items-baseline gap-1.5">
+                            <span id="compEngineerAmount" class="text-2xl sm:text-3xl font-bold text-teal-700">17,500.00</span>
+                            <span class="text-xs sm:text-sm font-medium text-slate-500">บาท</span>
+                        </div>
+                        <p id="compEngineerFormulaBreakdown" class="text-xs text-slate-500 mt-1">ยอดคงที่: 17,500.00 บาท</p>
+                    </div>
+                </div>
+
+                <!-- 2. คู่ค้าร่วม -->
+                <div class="p-4 sm:p-5 rounded-2xl bg-gradient-to-b from-blue-50/70 to-white border border-blue-200/80 flex flex-col justify-between transition-all hover:shadow-sm">
+                    <div>
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-blue-100 text-blue-700">
+                                <i data-lucide="handshake" class="w-4 h-4"></i>
+                            </span>
+                            <span id="compPartnerPercent" class="text-xs font-semibold text-blue-700 bg-blue-100/80 px-2.5 py-0.5 rounded-full">25.96%</span>
+                        </div>
+                        <h4 class="text-sm sm:text-base font-semibold text-slate-800">2. คู่ค้าร่วม</h4>
+                        <p class="text-xs text-slate-500 mt-0.5">จากค่า VJC (คู่ค้า) <span id="compPartnerVatTag" class="hidden text-blue-600 font-medium">+ คืน <span data-vat-rate>VAT 7%</span></span></p>
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-blue-100">
+                        <div class="flex items-baseline gap-1.5">
+                            <span id="compPartnerAmount" class="text-2xl sm:text-3xl font-bold text-blue-700">14,877.00</span>
+                            <span class="text-xs sm:text-sm font-medium text-slate-500">บาท</span>
+                        </div>
+                        <p id="compPartnerFormulaBreakdown" class="text-xs text-slate-500 mt-1">ค่า VJC (20%): 11,020.00 บาท (ไม่รวม VAT)</p>
+                    </div>
+                </div>
+
+                <!-- 3. ผู้จัดการโครงการ -->
+                <div id="compPmCard" class="p-4 sm:p-5 rounded-2xl bg-gradient-to-b from-indigo-50/80 to-white border border-indigo-200 flex flex-col justify-between transition-all hover:shadow-sm">
+                    <div>
+                        <div class="flex items-center justify-between mb-3">
+                            <span id="compPmIconBox" class="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-indigo-100 text-indigo-700">
+                                <i data-lucide="briefcase" class="w-4 h-4"></i>
+                            </span>
+                            <span id="compPmPercent" class="text-xs font-semibold text-indigo-700 bg-indigo-100/80 px-2.5 py-0.5 rounded-full">43.50%</span>
+                        </div>
+                        <h4 class="text-sm sm:text-base font-semibold text-slate-800">3. ผู้จัดการโครงการ</h4>
+                        <p class="text-xs text-slate-500 mt-0.5">งบวัสดุคงเหลือ + ค่าบริหารโครงการ (PM)</p>
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-indigo-100">
+                        <div class="flex items-baseline gap-1.5">
+                            <span id="compPmAmount" class="text-2xl sm:text-3xl font-bold text-indigo-700">24,927.00</span>
+                            <span class="text-xs sm:text-sm font-medium text-slate-500">บาท</span>
+                        </div>
+                        <p id="compPmFormulaBreakdown" class="text-xs text-slate-500 mt-1">
+                            วัสดุ 13,907.00 + PM 11,020.00
+                        </p>
+                        <p id="compPmWarning" class="hidden text-xs font-medium text-red-600 mt-1 flex items-center gap-1">
+                            <i data-lucide="alert-circle" class="w-3.5 h-3.5 shrink-0"></i>
+                            <span>งบวัสดุติดลบ ถูกหักลบจากค่าบริหาร</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ตารางสรุปค่าตอบแทนและที่มาของตัวเลขแบบละเอียด -->
+            <div class="mt-5 overflow-x-auto rounded-xl border border-slate-200/80">
+                <table class="w-full text-left border-collapse text-xs sm:text-sm">
+                    <thead>
+                        <tr class="bg-slate-50 text-slate-600 border-b border-slate-200">
+                            <th class="py-2.5 px-4 font-semibold">ตำแหน่ง / ผู้รับจัดสรร</th>
+                            <th class="py-2.5 px-4 font-semibold">องค์ประกอบการคำนวณ</th>
+                            <th class="py-2.5 px-4 font-semibold text-right">สัดส่วนต่อเงินสดรับ</th>
+                            <th class="py-2.5 px-4 font-semibold text-right">ยอดจัดสรรสุทธิ (บาท)</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 text-slate-700">
+                        <tr>
+                            <td class="py-2.5 px-4 font-medium text-teal-800">1. วิศวกรประจำโครงการ</td>
+                            <td id="detailCompEngFormula" class="py-2.5 px-4 text-slate-600">ค่าวิศวกรโครงการ (17,500.00 บาท)</td>
+                            <td id="detailCompEngPct" class="py-2.5 px-4 text-right font-medium">30.54%</td>
+                            <td id="detailCompEngAmt" class="py-2.5 px-4 text-right font-bold text-teal-700">17,500.00</td>
+                        </tr>
+                        <tr>
+                            <td class="py-2.5 px-4 font-medium text-blue-800">2. คู่ค้าร่วม (VJC)</td>
+                            <td id="detailCompPartnerFormula" class="py-2.5 px-4 text-slate-600">ค่า VJC 20% (11,020.00) + VAT (3,857.00)</td>
+                            <td id="detailCompPartnerPct" class="py-2.5 px-4 text-right font-medium">25.96%</td>
+                            <td id="detailCompPartnerAmt" class="py-2.5 px-4 text-right font-bold text-blue-700">14,877.00</td>
+                        </tr>
+                        <tr>
+                            <td class="py-2.5 px-4 font-medium text-indigo-800">3. ผู้จัดการโครงการ (PM)</td>
+                            <td id="detailCompPmFormula" class="py-2.5 px-4 text-slate-600">งบวัสดุคงเหลือ (13,907.00) + ค่าบริหารโครงการ 20% (11,020.00)</td>
+                            <td id="detailCompPmPct" class="py-2.5 px-4 text-right font-medium">43.50%</td>
+                            <td id="detailCompPmAmt" class="py-2.5 px-4 text-right font-bold text-indigo-700">24,927.00</td>
+                        </tr>
+                    </tbody>
+                    <tfoot>
+                        <tr class="bg-slate-50/90 font-semibold text-slate-900 border-t border-slate-200">
+                            <td colspan="2" class="py-2.5 px-4">รวมยอดจัดสรรค่าตอบแทนและงบหน้างานทั้ง 3 ฝ่าย</td>
+                            <td id="detailCompTotalPct" class="py-2.5 px-4 text-right text-brand-700">100.00%</td>
+                            <td id="detailCompTotalAmt" class="py-2.5 px-4 text-right text-brand-700">57,304.00</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <aside id="settlementBasis" aria-live="polite"
+                class="mt-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm leading-relaxed text-slate-800">
+                <h4 class="font-semibold text-amber-900">ฐานเงินสดสำหรับจัดสรร</h4>
+                <p id="settlementBasisText" class="mt-1"></p>
+            </aside>
+
+            <!-- Calculation Notes & Transparency Box -->
+            <div class="mt-6 pt-5 border-t border-slate-100">
+                <div class="rounded-2xl bg-slate-50/90 border border-slate-200/90 p-4 sm:p-5">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+                        <div class="flex items-center gap-2 text-slate-800">
+                            <span class="w-6 h-6 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                                <i data-lucide="info" class="w-3.5 h-3.5"></i>
+                            </span>
+                            <h4 class="text-sm sm:text-base font-semibold">หมายเหตุและหลักเกณฑ์การจัดสรรผลประโยชน์ (Calculation Notes)</h4>
+                        </div>
+                        <span class="text-[11px] font-medium text-slate-500 bg-white px-2.5 py-0.5 rounded-full border border-slate-200 self-start sm:self-auto">
+                            ตัวเลขอัปเดตอัตโนมัติตามงบประมาณ
+                        </span>
+                    </div>
+
+                    <ul class="space-y-2.5 text-xs sm:text-sm text-slate-600 leading-relaxed font-body">
+                        <li class="flex items-start gap-2">
+                            <span class="w-1.5 h-1.5 rounded-full bg-amber-500 mt-2 shrink-0"></span>
+                            <span>
+                                <strong class="text-slate-800 font-sans">การหักภาษี ณ ที่จ่าย (WHT <span id="noteWhtPercent">3</span>%):</strong>
+                                หักจากยอดงบประมาณโครงการก่อน VAT (<span id="noteNetBudget" class="font-semibold text-slate-800">55,100.00</span> &times; <span id="noteWhtPercentFormula">3</span>% = <span id="noteWhtAmount" class="font-semibold text-amber-700">1,653.00</span> บาท) เนื่องจากลูกค้าจะหักภาษีส่วนนี้ไว้ ณ วันส่งมอบงาน/รับชำระเงิน (ได้หนังสือรับรองการหักภาษี ณ ที่จ่าย 50 ทวิ แทนเงินสด)
+                            </span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-2 shrink-0"></span>
+                            <span>
+                                <strong class="text-slate-800 font-sans">เงินสดจากฐานก่อน VAT หลังหัก WHT:</strong>
+                                เท่ากับ <span id="noteNetCash" class="font-semibold text-emerald-700">53,447.00</span> บาท (งบโครงการหลังหัก WHT <span id="noteWhtPercentCash">3</span>%) โดยยอดจัดสรรทั้ง 3 ฝ่ายตามเงื่อนไขที่เลือกคือ <span id="noteAllocBreakdown" class="font-medium text-slate-800">17,500.00 + 11,020.00 + 24,927.00 = 53,447.00 บาท</span>
+                            </span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span class="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-2 shrink-0"></span>
+                            <span>
+                                <strong class="text-slate-800 font-sans">เงื่อนไขยอดผู้จัดการโครงการ (PM):</strong>
+                                รวมงบจัดซื้อวัสดุอุปกรณ์คงเหลือ (<span id="noteMaterialAmount" class="font-semibold text-slate-800">13,907.00</span> บาท) เข้ากับค่าบริหารโครงการ (<span id="notePmAmount" class="font-semibold text-slate-800">11,020.00</span> บาท) เพื่อความคล่องตัวในการบริหารจัดซื้อหน้างาน (หากค่าวัสดุจริงต่ำกว่าหรือสูงกว่างบ ส่วนต่างอยู่ภายใต้ความรับผิดชอบของผู้จัดการโครงการ)
+                            </span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span class="w-1.5 h-1.5 rounded-full bg-blue-500 mt-2 shrink-0"></span>
+                            <span>
+                                <strong class="text-slate-800 font-sans">เงื่อนไขคู่ค้าร่วม (VJC) และ <span data-vat-rate>VAT 7%</span>:</strong>
+                                จัดสรรจากค่า VJC (<span id="noteVjcBaseAmount" class="font-semibold text-slate-800">11,020.00</span> บาท) <span id="notePartnerVatRuleText">จ่ายตามยอดค่า VJC</span>
+                            </span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span class="w-1.5 h-1.5 rounded-full bg-purple-500 mt-2 shrink-0"></span>
+                            <span>
+                                <strong class="text-slate-800 font-sans">การคำนวณงบประมาณโครงการรวม:</strong>
+                                ต้นทุนโครงการ <span id="noteBaseBeforeVat">55,100.00</span> บาท + <span data-vat-rate>VAT 7%</span> <span id="noteVatExtracted">3,857.00</span> บาท = งบประมาณโครงการรวม <span id="noteRawBudget">58,957.00</span> บาท
+                            </span>
+                        </li>
+                        <li class="flex items-start gap-2">
+                            <span class="w-1.5 h-1.5 rounded-full bg-slate-400 mt-2 shrink-0"></span>
+                            <span>
+                                <strong class="text-slate-800 font-sans">หมายเหตุภาษีรายบุคคล:</strong>
+                                ยอดจัดสรรของแต่ละฝ่ายเป็นยอดเงินสดโอนจัดสรรหลังหัก WHT โครงการแล้ว กรณีมีภาษีหัก ณ ที่จ่ายรายบุคคลเพิ่มเติมตอนทำจ่าย ให้เป็นไปตามข้อตกลงทางบัญชีของแต่ละฝ่าย
+                            </span>
+                        </li>
+                    </ul>
+
+                    <!-- Custom Project Note (Editable on screen, cleanly printed if filled) -->
+                    <div id="customNoteContainer" class="mt-4 pt-3.5 border-t border-slate-200/80">
+                        <label for="customProjectNote" class="flex items-center gap-1.5 text-xs font-semibold text-slate-700 mb-1.5">
+                            <i data-lucide="file-edit" class="w-3.5 h-3.5 text-brand-600"></i>
+                            <span>บันทึกเพิ่มเติมเฉพาะโครงการ (Custom Project Note)</span>
+                            <span class="text-[11px] font-normal text-slate-400 no-print">(ไม่บังคับ - จะแสดงในรายงานเมื่อกรอกข้อความ)</span>
+                        </label>
+                        <textarea id="customProjectNote" rows="2" oninput="updateCustomNoteDisplay()"
+                            placeholder="ระบุเลขที่โครงการ ชื่อลูกค้า เงื่อนไขงวดชำระเงิน หรือข้อตกลงเพิ่มเติมก่อนพิมพ์/ส่งต่อ..."
+                            class="no-print w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-700 font-body focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all resize-y"></textarea>
+                        <!-- Print-friendly static text output -->
+                        <div id="customProjectNotePrint" class="hidden print-only text-xs sm:text-sm text-slate-800 font-body bg-white p-2.5 rounded-lg border border-slate-200 whitespace-pre-line"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-4 mt-8 no-print">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-400 gap-2">
+            <p>Project Budget Calculator &bull; เครื่องมือช่วยวางแผนและคำนวณต้นทุนโครงการ</p>
+            <p>คำนวณแม่นยำตามหลักบัญชี (คำนวณ <span data-vat-rate>VAT 7%</span> จากต้นทุนโครงการ)</p>
+        </div>
+    </footer>
+
+    <!-- Toast Notification สำหรับแจ้งเตือนเมื่อคัดลอกสำเร็จ -->
+    <div id="toastNotification" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none no-print">
+        <div class="bg-slate-900 text-white px-4 py-3 rounded-xl shadow-xl flex items-center gap-3 border border-slate-700">
+            <div class="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+                <i data-lucide="check" class="w-4 h-4"></i>
+            </div>
+            <div>
+                <p id="toastTitle" class="text-sm font-medium">คัดลอกสรุปงบประมาณสำเร็จ!</p>
+                <p id="toastDesc" class="text-xs text-slate-400">สามารถนำไปวาง (Paste) ใน LINE หรือ Email ได้ทันที</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // สร้างไอคอน Lucide
+        window.lucide?.createIcons();
+
+
+        // ข้อมูลสรุปล่าสุดสำหรับนำไปคัดลอกเป็นข้อความ
+        let latestCalculationData = {};
+
+        // ฟังก์ชันจัดรูปแบบตัวเลขทศนิยม 2 ตำแหน่งพร้อมลูกน้ำ
+        function formatCurrency(num) {
+            return Number(num).toLocaleString('th-TH', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+        }
+
+        // ฟังก์ชันจัดรูปแบบเปอร์เซ็นต์
+        function formatPercent(num) {
+            if (num === undefined) return "—";
+            return Number(num).toLocaleString('th-TH', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }) + '%';
+        }
+
+        // ฟังก์ชันหลักในการคำนวณงบประมาณทั้งหมดแบบ Real-time
+        function calculateBudget() {
+            // 1. รับค่าจาก Input
+            const projectName = document.getElementById('projectName').value.trim();
+            const netBudget = parseFloat(document.getElementById('totalBudget').value) || 0;
+            
+            const vjcPercent = parseFloat(document.getElementById('vjcPercent').value) || 0;
+            const pmPercent = parseFloat(document.getElementById('pmPercent').value) || 0;
+            const whtPercent = parseFloat(document.getElementById('whtPercent').value) || 0;
+            const engineerCost = parseFloat(document.getElementById('engineerCost').value) || 0;
+
+            const vatInput = document.getElementById('vatPercent');
+            const vatPercent = Math.min(100, Math.max(0, Number(vatInput.value) || 0));
+            const vatRateLabel = `VAT ${vatPercent}%`;
+            document.querySelectorAll('[data-vat-rate]').forEach(label => {
+                label.textContent = vatRateLabel;
+            });
+            const vatAmount = Math.round(netBudget * vatPercent) / 100;
+            const totalBudgetWithVat = netBudget + vatAmount;
+            document.getElementById('vatAmountDisplay').textContent = formatCurrency(vatAmount) + ' บาท';
+            document.getElementById('totalBudgetDisplay').textContent = formatCurrency(totalBudgetWithVat) + ' บาท';
+            document.getElementById('summaryVatAmount').textContent = formatCurrency(vatAmount) + ' ฿';
+
+            // 3. คำนวณค่าใช้จ่ายแต่ละหมวดจากฐานงบสุทธิ (netBudget)
+            const vjcAmount = netBudget * (vjcPercent / 100);
+            const pmAmount = netBudget * (pmPercent / 100);
+            const whtAmount = netBudget * (whtPercent / 100);
+            
+            // คำนวณ % ของค่าวิศวกรเทียบกับงบสุทธิ
+            const engineerPercent = netBudget > 0 ? (engineerCost / netBudget) * 100 : 0;
+
+            // ยอดรวมค่าใช้จ่าย 4 หมวดแรก
+            const totalAllocatedCost = vjcAmount + pmAmount + whtAmount + engineerCost;
+
+            // 4. คำนวณงบประมาณค่าวัสดุอุปกรณ์คงเหลือ
+            const materialAmount = netBudget - totalAllocatedCost;
+            const materialPercent = netBudget > 0 ? (materialAmount / netBudget) * 100 : 0;
+
+            // 4.1 คำนวณสรุปค่าตอบแทน (Compensation Summary)
+            const compEngineerAmount = engineerCost;
+
+            
+            // คืน VAT ให้คู่ค้าร่วมตามเงื่อนไขการจัดสรรเดิม
+            const partnerVatRefund = vatAmount;
+            const compPartnerAmount = vjcAmount + partnerVatRefund;
+
+
+            const compPmTotalAmount = materialAmount + pmAmount;
+
+            const netCashReceived = netBudget - whtAmount;
+            const settlementCash = totalBudgetWithVat - whtAmount;
+            const totalAllocatedToRoles = compEngineerAmount + compPartnerAmount + compPmTotalAmount;
+            const amounts = [compEngineerAmount, compPartnerAmount, compPmTotalAmount];
+            const hasValidShares = settlementCash >= 0.005 && amounts.every(amount => amount >= -1e-8);
+            const shares = hasValidShares
+                ? amounts.map(amount => Math.max(0, amount) / settlementCash * 10000)
+                : [];
+            const roundedShares = shares.map(Math.floor);
+            // แจกเศษทศนิยมให้รายการที่มีเศษมากที่สุด เพื่อให้สัดส่วนที่แสดงรวม 100.00%
+            const remainder = 10000 - roundedShares.reduce((sum, share) => sum + share, 0);
+            shares.map((share, index) => ({ index, fraction: share - roundedShares[index] }))
+                .sort((a, b) => b.fraction - a.fraction)
+                .slice(0, remainder)
+                .forEach(({ index }) => { roundedShares[index] += 1; });
+            const [compEngineerPercent, compPartnerPercent, compPmTotalPercent] = roundedShares.map(share => share / 100);
+            const totalAllocatedToRolesPct = hasValidShares ? 100 : undefined;
+            const settlementNote = `ฐานสัดส่วนเท่ากับยอดก่อน VAT ${formatCurrency(netBudget)} + VAT ${formatCurrency(vatAmount)} − WHT ${formatCurrency(whtAmount)} = ${formatCurrency(settlementCash)} บาท`
+                + (partnerVatRefund > 0 ? ` โดยยอดคู่ค้าร่วมรวม VAT ${formatCurrency(partnerVatRefund)} บาทตามเงื่อนไขในแบบคำนวณ` : '')
+                + (amounts.some(amount => amount < -1e-8) || settlementCash < 0
+                    ? ' พบยอดติดลบ กรุณาตรวจสอบตัวเลขก่อนใช้สรุปยอดโอน' : '');
+
+            // 5. อัปเดตตัวเลข Preview ในฝั่ง Input Form
+            document.getElementById('vjcBahtPreview').textContent = formatCurrency(vjcAmount) + ' บาท';
+            document.getElementById('pmBahtPreview').textContent = formatCurrency(pmAmount) + ' บาท';
+            document.getElementById('whtBahtPreview').textContent = formatCurrency(whtAmount) + ' บาท';
+            document.getElementById('engineerPercentPreview').textContent = formatPercent(engineerPercent);
+
+            // 6. อัปเดต Highlight Card และ Warning Alert
+            const highlightCard = document.getElementById('highlightCard');
+            const overBudgetAlert = document.getElementById('overBudgetAlert');
+            const statusBadge = document.getElementById('budgetStatusBadge');
+
+            document.getElementById('materialAmountDisplay').textContent = formatCurrency(materialAmount);
+            document.getElementById('materialPercentDisplay').textContent = formatPercent(materialPercent);
+            document.getElementById('baseBudgetSubtext').textContent = `จากฐานงบ ${formatCurrency(netBudget)} บาท`;
+
+            if (materialAmount < -0.005) {
+                // กรณีงบติดลบ (เกินงบประมาณ)
+                overBudgetAlert.classList.remove('hidden');
+                document.getElementById('alertOverAmount').textContent = formatCurrency(materialAmount);
+                
+                highlightCard.classList.remove('from-brand-700', 'via-brand-600', 'to-emerald-600');
+                highlightCard.classList.add('from-red-700', 'via-red-600', 'to-rose-600');
+                document.getElementById('materialPercentDisplay').classList.remove('text-emerald-200');
+                document.getElementById('materialPercentDisplay').classList.add('text-amber-200');
+
+                statusBadge.className = 'inline-flex items-center gap-1 font-semibold text-red-600 bg-red-50 px-2.5 py-1 rounded-full';
+                statusBadge.innerHTML = '<i data-lucide="alert-circle" class="w-3.5 h-3.5"></i> เกินงบประมาณ';
+            } else {
+                // กรณีงบปกติ
+                overBudgetAlert.classList.add('hidden');
+                
+                highlightCard.classList.remove('from-red-700', 'via-red-600', 'to-rose-600');
+                highlightCard.classList.add('from-brand-700', 'via-brand-600', 'to-emerald-600');
+                document.getElementById('materialPercentDisplay').classList.remove('text-amber-200');
+                document.getElementById('materialPercentDisplay').classList.add('text-emerald-200');
+
+                statusBadge.className = 'inline-flex items-center gap-1 font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full';
+                statusBadge.innerHTML = '<i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i> สมดุล (เพียงพอ)';
+            }
+
+            // 7. อัปเดตการ์ดภาพรวมโครงสร้างงบประมาณ
+            document.getElementById('summaryTotalBudget').textContent = formatCurrency(totalBudgetWithVat) + ' ฿';
+            document.getElementById('summaryNetBudget').textContent = formatCurrency(netBudget) + ' ฿';
+            document.getElementById('summaryFixedAndPercentCost').textContent = formatCurrency(totalAllocatedCost) + ' ฿';
+
+            // 7.0 อัปเดตการ์ดสรุปกระแสเงินสดรับและยอดจัดสรร (Cash Flow & Settlement)
+            document.getElementById('cashflowBaseNet').textContent = formatCurrency(totalBudgetWithVat) + ' ฿';
+            document.getElementById('cashflowVatNote').textContent = `ยอดก่อน VAT ${formatCurrency(netBudget)} + VAT ${formatCurrency(vatAmount)} บาท`;
+            document.getElementById('cashflowWhtPctLabel').textContent = whtPercent;
+            document.getElementById('cashflowWhtDeduction').textContent = '-' + formatCurrency(whtAmount) + ' ฿';
+            document.getElementById('cashflowNetCash').textContent = formatCurrency(settlementCash) + ' ฿';
+            document.getElementById('cashflowSettlementStatus').textContent = partnerVatRefund > 0
+                ? `จัดสรร 3 ฝ่าย: ${formatCurrency(compEngineerAmount + compPartnerAmount + compPmTotalAmount)} ฿ (รวมคืน VAT ${formatCurrency(partnerVatRefund)} ฿)`
+                : `ยอดจัดสรร 3 ฝ่าย: ${formatCurrency(compEngineerAmount + compPartnerAmount + compPmTotalAmount)} ฿`;
+
+            // 7.1 อัปเดตการ์ดสรุปค่าตอบแทน (Compensation Summary)
+            document.getElementById('compEngineerAmount').textContent = formatCurrency(compEngineerAmount);
+            document.getElementById('compEngineerPercent').textContent = formatPercent(compEngineerPercent);
+            document.getElementById('compEngineerFormulaBreakdown').textContent = `ยอดคงที่: ${formatCurrency(compEngineerAmount)} บาท (${formatPercent(compEngineerPercent)})`;
+
+            document.getElementById('compPartnerAmount').textContent = formatCurrency(compPartnerAmount);
+            document.getElementById('compPartnerPercent').textContent = formatPercent(compPartnerPercent);
+
+            const compPartnerVatTag = document.getElementById('compPartnerVatTag');
+            const compPartnerFormulaBreakdown = document.getElementById('compPartnerFormulaBreakdown');
+            const noteVjcBaseAmount = document.getElementById('noteVjcBaseAmount');
+            const notePartnerVatRuleText = document.getElementById('notePartnerVatRuleText');
+
+            noteVjcBaseAmount.textContent = formatCurrency(vjcAmount);
+
+            if (partnerVatRefund > 0) {
+                compPartnerVatTag.classList.remove('hidden');
+                compPartnerFormulaBreakdown.textContent = `VJC ${formatCurrency(vjcAmount)} + คืน ${vatRateLabel} ${formatCurrency(partnerVatRefund)}`;
+                notePartnerVatRuleText.innerHTML = `และ <strong>คืน ${vatRateLabel} ให้คู่ค้าร่วมเต็มจำนวน (${formatCurrency(partnerVatRefund)} บาท)</strong> รวมเป็น <strong class="text-blue-700">${formatCurrency(compPartnerAmount)} บาท</strong>`;
+            } else {
+                compPartnerVatTag.classList.add('hidden');
+                compPartnerFormulaBreakdown.textContent = `ค่า VJC (${vjcPercent}%): ${formatCurrency(vjcAmount)} บาท (ไม่รวม VAT)`;
+                notePartnerVatRuleText.textContent = 'จ่ายตามยอดค่า VJC (ไม่มีการคืน VAT)';
+            }
+
+            document.getElementById('compPmAmount').textContent = formatCurrency(compPmTotalAmount);
+            document.getElementById('compPmPercent').textContent = formatPercent(compPmTotalPercent);
+            document.getElementById('compPmFormulaBreakdown').textContent = `วัสดุ ${formatCurrency(materialAmount)} + PM ${formatCurrency(pmAmount)}`;
+
+            // อัปเดตตารางสรุปค่าตอบแทนแบบละเอียด
+
+            document.getElementById('detailCompEngFormula').textContent = `ค่าวิศวกรโครงการยอดคงที่ (${formatCurrency(compEngineerAmount)} บาท)`;
+            document.getElementById('detailCompEngPct').textContent = formatPercent(compEngineerPercent);
+            document.getElementById('detailCompEngAmt').textContent = formatCurrency(compEngineerAmount);
+
+            document.getElementById('detailCompPartnerFormula').textContent = partnerVatRefund > 0
+                ? `ค่า VJC ${vjcPercent}% (${formatCurrency(vjcAmount)}) + คืน ${vatRateLabel} (${formatCurrency(partnerVatRefund)})`
+                : `ค่า VJC ${vjcPercent}% (${formatCurrency(vjcAmount)} บาท)`;
+            document.getElementById('detailCompPartnerPct').textContent = formatPercent(compPartnerPercent);
+            document.getElementById('detailCompPartnerAmt').textContent = formatCurrency(compPartnerAmount);
+
+            document.getElementById('detailCompPmFormula').textContent = `งบวัสดุคงเหลือ (${formatCurrency(materialAmount)}) + ค่าบริหารโครงการ ${pmPercent}% (${formatCurrency(pmAmount)})`;
+            document.getElementById('detailCompPmPct').textContent = formatPercent(compPmTotalPercent);
+            document.getElementById('detailCompPmAmt').textContent = formatCurrency(compPmTotalAmount);
+
+            document.getElementById('detailCompTotalPct').textContent = formatPercent(totalAllocatedToRolesPct);
+            document.getElementById('detailCompTotalAmt').textContent = formatCurrency(totalAllocatedToRoles);
+
+            document.getElementById('settlementBasisText').textContent = settlementNote;
+
+
+            const compPmCard = document.getElementById('compPmCard');
+            const compPmIconBox = document.getElementById('compPmIconBox');
+            const compPmPercentBadge = document.getElementById('compPmPercent');
+            const compPmAmountText = document.getElementById('compPmAmount');
+            const compPmWarning = document.getElementById('compPmWarning');
+
+            if (materialAmount < -0.005) {
+                compPmCard.className = 'p-4 rounded-2xl bg-gradient-to-b from-red-50/80 to-white border border-red-200 flex flex-col justify-between transition-all hover:shadow-sm';
+                compPmIconBox.className = 'inline-flex items-center justify-center w-8 h-8 rounded-xl bg-red-100 text-red-700';
+                compPmPercentBadge.className = 'text-xs font-semibold text-red-700 bg-red-100/80 px-2.5 py-0.5 rounded-full';
+                compPmAmountText.className = `text-xl sm:text-2xl font-bold ${compPmTotalAmount < 0 ? 'text-red-700' : 'text-amber-700'}`;
+                compPmWarning.classList.remove('hidden');
+            } else {
+                compPmCard.className = 'p-4 rounded-2xl bg-gradient-to-b from-indigo-50/80 to-white border border-indigo-200 flex flex-col justify-between transition-all hover:shadow-sm';
+                compPmIconBox.className = 'inline-flex items-center justify-center w-8 h-8 rounded-xl bg-indigo-100 text-indigo-700';
+                compPmPercentBadge.className = 'text-xs font-semibold text-indigo-700 bg-indigo-100/80 px-2.5 py-0.5 rounded-full';
+                compPmAmountText.className = 'text-xl sm:text-2xl font-bold text-indigo-700';
+                compPmWarning.classList.add('hidden');
+            }
+
+            // 7.2 อัปเดตตัวเลขในกล่องหมายเหตุ (Calculation Notes) แบบ Real-time
+            document.getElementById('noteWhtPercent').textContent = whtPercent;
+            document.getElementById('noteWhtPercentFormula').textContent = whtPercent;
+            document.getElementById('noteWhtPercentCash').textContent = whtPercent;
+            document.getElementById('noteNetBudget').textContent = formatCurrency(netBudget);
+            document.getElementById('noteWhtAmount').textContent = formatCurrency(whtAmount);
+            document.getElementById('noteNetCash').textContent = formatCurrency(netCashReceived);
+            document.getElementById('noteAllocBreakdown').textContent = `${formatCurrency(compEngineerAmount)} + ${formatCurrency(compPartnerAmount)} + ${formatCurrency(compPmTotalAmount)} = ${formatCurrency(totalAllocatedToRoles)} บาท` + (partnerVatRefund > 0 ? ` (รวมคืน ${vatRateLabel} ให้คู่ค้า ${formatCurrency(partnerVatRefund)} บาท)` : '');
+            document.getElementById('noteMaterialAmount').textContent = formatCurrency(materialAmount);
+            document.getElementById('notePmAmount').textContent = formatCurrency(pmAmount);
+            document.getElementById('noteVatExtracted').textContent = formatCurrency(vatAmount);
+            document.getElementById('noteRawBudget').textContent = formatCurrency(totalBudgetWithVat);
+            document.getElementById('noteBaseBeforeVat').textContent = formatCurrency(netBudget);
+
+            // 8. อัปเดตตารางสรุปรายละเอียด
+            updateSummaryTable([
+                { name: 'ค่า VJC (คู่ค้า)', type: `สัดส่วน ${vjcPercent}%`, percent: vjcPercent, amount: vjcAmount, color: 'bg-blue-500' },
+                { name: 'ค่าบริหารโครงการ (PM)', type: `สัดส่วน ${pmPercent}%`, percent: pmPercent, amount: pmAmount, color: 'bg-indigo-500' },
+                { name: 'ค่าภาษีหัก ณ ที่จ่าย (WHT)', type: `สัดส่วน ${whtPercent}%`, percent: whtPercent, amount: whtAmount, color: 'bg-amber-500' },
+                { name: 'ค่าวิศวกรโครงการ', type: 'ยอดคงที่ (Fixed)', percent: engineerPercent, amount: engineerCost, color: 'bg-teal-500' },
+                { name: 'ค่าวัสดุอุปกรณ์ (ส่วนที่เหลือ)', type: 'ยอดคงเหลือสุทธิ', percent: materialPercent, amount: materialAmount, color: materialAmount < 0 ? 'bg-red-500' : 'bg-emerald-500', isHighlight: true }
+            ], netBudget);
+
+
+            // 10. อัปเดตข้อมูลสำหรับหน้าพิมพ์และฟังก์ชันคัดลอก
+
+            latestCalculationData = {
+                projectName,
+                totalBudgetWithVat,
+                vatAmount,
+                vatRateLabel,
+                netBudget,
+                vjcPercent,
+                vjcAmount,
+                pmPercent,
+                pmAmount,
+                whtPercent,
+                whtAmount,
+                engineerCost,
+                engineerPercent,
+                materialAmount,
+                materialPercent,
+                compEngineerAmount,
+                compEngineerPercent,
+                partnerVatRefund,
+                compPartnerAmount,
+                compPartnerPercent,
+                compPmTotalAmount,
+                compPmTotalPercent,
+                totalAllocatedToRoles,
+                totalAllocatedToRolesPct,
+                settlementCash,
+                settlementNote,
+                netCashReceived
+            };
+
+            // Re-render icons สำหรับ badge ที่เปลี่ยนแบบ dynamic
+            window.lucide?.createIcons();
+        }
+
+        // ฟังก์ชันอัปเดตการแสดงผลบันทึกเพิ่มเติมเฉพาะโครงการสำหรับหน้าพิมพ์
+        function updateCustomNoteDisplay() {
+            const noteVal = document.getElementById('customProjectNote').value.trim();
+            const container = document.getElementById('customNoteContainer');
+            const printBox = document.getElementById('customProjectNotePrint');
+            
+            printBox.textContent = noteVal;
+            if (noteVal === '') {
+                container.classList.add('no-print');
+            } else {
+                container.classList.remove('no-print');
+            }
+        }
+
+        // ฟังก์ชันอัปเดตตารางสรุปผล
+        function updateSummaryTable(items, netBudget) {
+            const tbody = document.getElementById('summaryTableBody');
+            tbody.innerHTML = '';
+
+            items.forEach(item => {
+                const tr = document.createElement('tr');
+                if (item.isHighlight) {
+                    tr.className = item.amount < 0 
+                        ? 'bg-red-50/80 font-semibold text-red-700' 
+                        : 'bg-emerald-50/70 font-semibold text-emerald-900';
+                } else {
+                    tr.className = 'hover:bg-slate-50/80 transition-colors text-slate-700';
+                }
+
+                tr.innerHTML = `
+                    <td class="py-3.5 px-4 sm:px-5">
+                        <div class="flex items-center gap-2.5">
+                            <span class="w-2.5 h-2.5 rounded-full ${item.color} shrink-0"></span>
+                            <span>${item.name}</span>
+                        </div>
+                    </td>
+                    <td class="py-3.5 px-3 text-center">
+                        <span class="inline-block px-2 py-0.5 text-xs rounded-md ${item.isHighlight ? (item.amount < 0 ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-800') : 'bg-slate-100 text-slate-600'}">
+                            ${item.type}
+                        </span>
+                    </td>
+                    <td class="py-3.5 px-3 text-right font-medium">
+                        ${formatPercent(item.percent)}
+                    </td>
+                    <td class="py-3.5 px-4 sm:px-5 text-right font-semibold">
+                        ${formatCurrency(item.amount)}
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById('tableTotalAmount').textContent = formatCurrency(netBudget);
+        }
+
+        // ฟังก์ชันรีเซ็ตค่าเริ่มต้นตามโจทย์
+        function resetDefaults() {
+            try {
+                document.getElementById('projectName').value = '';
+                document.getElementById('totalBudget').value = '55100';
+                document.getElementById('vatPercent').value = '7';
+                document.getElementById('vjcPercent').value = '20';
+                document.getElementById('pmPercent').value = '20';
+                document.getElementById('whtPercent').value = '3';
+                document.getElementById('engineerCost').value = '17500';
+                document.getElementById('customProjectNote').value = '';
+                updateCustomNoteDisplay();
+                calculateBudget();
+                showToast('รีเซ็ตค่าเริ่มต้นแล้ว', 'กลับสู่ค่าเริ่มต้นงบประมาณ 55,100 บาท');
+            } catch (err) {
+                console.error('Reset error:', err);
+                showToast('เกิดข้อผิดพลาดในการรีเซ็ต', 'กรุณาลองใหม่อีกครั้ง');
+            }
+        }
+
+        // ฟังก์ชันคัดลอกสรุปงบประมาณเป็นข้อความ
+        function copySummary() {
+            calculateBudget();
+            const d = latestCalculationData;
+            const customNote = document.getElementById('customProjectNote').value.trim();
+
+            const lines = [
+                `📊 สรุปงบประมาณโครงการ${d.projectName ? `: ${d.projectName}` : ''}`,
+                `• ต้นทุนโครงการ: ${formatCurrency(d.netBudget)} บาท`,
+                `• ${d.vatRateLabel}: ${formatCurrency(d.vatAmount)} บาท`,
+                `• งบประมาณรวม: ${formatCurrency(d.totalBudgetWithVat)} บาท`,
+                `• ค่า VJC (คู่ค้า ${d.vjcPercent}%): ${formatCurrency(d.vjcAmount)} บาท`,
+                `• ค่าบริหารโครงการ (${d.pmPercent}%): ${formatCurrency(d.pmAmount)} บาท`,
+                `• ค่า WHT (${d.whtPercent}%): ${formatCurrency(d.whtAmount)} บาท`,
+                `• ค่าวิศวกรโครงการ: ${formatCurrency(d.engineerCost)} บาท`,
+                `📦 งบค่าวัสดุอุปกรณ์คงเหลือ: ${formatCurrency(d.materialAmount)} บาท (${formatPercent(d.materialPercent)})`,
+                `💵 เงินสดรับรวม VAT หลังหัก WHT: ${formatCurrency(d.settlementCash)} บาท`,
+                ``,
+                `👥 สรุปค่าตอบแทน:`,
+                `1. วิศวกรประจำโครงการ: ${formatCurrency(d.compEngineerAmount)} บาท (${formatPercent(d.compEngineerPercent)})`,
+                `2. คู่ค้าร่วม: ${formatCurrency(d.compPartnerAmount)} บาท (${formatPercent(d.compPartnerPercent)})${d.partnerVatRefund > 0 ? ` [รวมคืน ${d.vatRateLabel} ${formatCurrency(d.partnerVatRefund)} บาท]` : ''}`,
+                `3. ผู้จัดการโครงการ: ${formatCurrency(d.compPmTotalAmount)} บาท (${formatPercent(d.compPmTotalPercent)})`,
+                `รวมจัดสรร: ${formatCurrency(d.totalAllocatedToRoles)} บาท (${formatPercent(d.totalAllocatedToRolesPct)})`,
+                d.settlementNote,
+                ...(customNote ? [``, `📝 บันทึกเพิ่มเติม: ${customNote}`] : [])
+            ];
+
+            const textToCopy = lines.join('\n');
+
+            const tempTextArea = document.createElement('textarea');
+            tempTextArea.value = textToCopy;
+            tempTextArea.style.position = 'fixed';
+            tempTextArea.style.left = '-9999px';
+            document.body.appendChild(tempTextArea);
+            tempTextArea.select();
+
+            try {
+                document.execCommand('copy');
+                showToast('คัดลอกสรุปงบประมาณสำเร็จ!', 'สามารถนำไปวาง (Paste) ใน LINE หรือ Email ได้ทันที');
+            } catch (err) {
+                showToast('ไม่สามารถคัดลอกอัตโนมัติได้', 'กรุณาลองใหม่อีกครั้ง');
+            } finally {
+                document.body.removeChild(tempTextArea);
+            }
+        }
+
+        // ฟังก์ชันแสดง Toast Notification
+        let toastTimeout = null;
+        function showToast(title, desc) {
+            const toast = document.getElementById('toastNotification');
+            document.getElementById('toastTitle').textContent = title;
+            document.getElementById('toastDesc').textContent = desc;
+
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            if (toastTimeout) clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3500);
+        }
+
+        // สร้างชื่อไฟล์มาตรฐานพร้อมวันที่
+        function getExportFilename(extension) {
+            const d = latestCalculationData;
+            const safeName = (d.projectName || 'Project_Budget')
+                .replace(/[\\/:*?"<>|]/g, '_')
+                .replace(/\s+/g, '_');
+            const dateStr = new Date().toISOString().slice(0, 10);
+            return `${safeName}_${dateStr}.${extension}`;
+        }
+
+        const salePriceRowLabel = 'งบประมาณโครงการรวม (Total Budget)<br><strong>( ราคาขายโครงการ )</strong>';
+
+        function reportTable(title, headers, widths, rows) {
+            const columns = widths.map(width => `<col style="width:${width}%">`).join('');
+            const headings = headers.map((label, index) =>
+                `<th scope="col" class="${index ? 'report-number' : ''}">${label}</th>`).join('');
+            const body = rows.map(([label, ...values]) =>
+                `<tr class="${label.startsWith('รวม') || label === salePriceRowLabel ? 'report-total' : ''}"><th scope="row">${label}</th>${values.map(value =>
+                    `<td class="report-number">${value}</td>`).join('')}</tr>`).join('');
+            return `<section><h2>${title}</h2><table><colgroup>${columns}</colgroup>
+                <thead><tr>${headings}</tr></thead><tbody>${body}</tbody></table></section>`;
+        }
+
+        function preparePrintReport() {
+            calculateBudget();
+            const d = latestCalculationData;
+            const money = formatCurrency;
+            const percent = formatPercent;
+            const report = document.getElementById('budgetPrintReport');
+            report.innerHTML = `
+                <header>
+                    <h1>รายงานสรุปงบประมาณโครงการ</h1>
+                    <p id="reportProjectName"></p>
+                    <p id="reportDate"></p>
+                </header>
+                <div class="report-overview">
+                ${reportTable('1. กำหนดข้อมูลและสัดส่วน', ['รายการ', 'ค่าที่ใช้คำนวณ'], [65, 35], [
+                    ['ต้นทุนโครงการ (ฐานคำนวณ)', money(d.netBudget) + ' บาท'],
+                    [d.vatRateLabel, money(d.vatAmount) + ' บาท'],
+                    [salePriceRowLabel, money(d.totalBudgetWithVat) + ' บาท'],
+                    ['สัดส่วนคู่ค้าร่วม (VJC)', percent(d.vjcPercent)],
+                    ['สัดส่วนค่าบริหารโครงการ (PM)', percent(d.pmPercent)],
+                    ['อัตราภาษีหัก ณ ที่จ่าย (WHT)', percent(d.whtPercent)],
+                    ['ค่าวิศวกรโครงการ (ยอดคงที่)', money(d.engineerCost) + ' บาท']
+                ])}
+                <section>
+                    <h2>2. งบประมาณค่าวัสดุอุปกรณ์</h2>
+                    <p>ต้นทุนโครงการ ${money(d.netBudget)} บาท หักค่า VJC ค่าบริหารโครงการ WHT และค่าวิศวกร รวม ${money(d.netBudget - d.materialAmount)} บาท</p>
+                    <p class="${d.materialAmount < 0 ? 'report-warning' : 'report-key'}">
+                        งบวัสดุคงเหลือ ${money(d.materialAmount)} บาท (${percent(d.materialPercent)} ของต้นทุนโครงการ)
+                    </p>
+                    ${d.materialAmount < 0 ? '<p class="report-warning">ค่าใช้จ่ายรวมเกินวงเงินโครงการ</p>' : ''}
+                </section>
+                </div>
+                ${reportTable('3. ตารางสรุปรายละเอียดงบประมาณทั้งหมด', ['รายการ', 'สัดส่วน', 'จำนวนเงิน (บาท)'], [57, 16, 27], [
+                    ['ค่า VJC (คู่ค้าร่วม)', percent(d.vjcPercent), money(d.vjcAmount)],
+                    ['ค่าบริหารโครงการ (PM)', percent(d.pmPercent), money(d.pmAmount)],
+                    ['ภาษีหัก ณ ที่จ่าย (WHT)', percent(d.whtPercent), money(d.whtAmount)],
+                    ['ค่าวิศวกรโครงการ', percent(d.engineerPercent), money(d.engineerCost)],
+                    ['งบค่าวัสดุอุปกรณ์คงเหลือ', percent(d.materialPercent), money(d.materialAmount)],
+                    ['รวมต้นทุนโครงการ', percent(d.netBudget > 0 ? 100 : 0), money(d.netBudget)],
+                    [d.vatRateLabel, '—', money(d.vatAmount)],
+                    [salePriceRowLabel, '—', money(d.totalBudgetWithVat)]
+                ])}
+                ${reportTable('4. สรุปค่าตอบแทน (Compensation Summary)', ['ผู้รับและที่มาของยอดจัดสรร', 'สัดส่วนต่อเงินสดรับ', 'จำนวนเงิน (บาท)'], [56, 19, 25], [
+                    ['วิศวกรประจำโครงการ (ยอดคงที่)', percent(d.compEngineerPercent), money(d.compEngineerAmount)],
+                    [`คู่ค้าร่วม (VJC) ${money(d.vjcAmount)}${d.partnerVatRefund > 0 ? ` + VAT ${money(d.partnerVatRefund)}` : ''}`, percent(d.compPartnerPercent), money(d.compPartnerAmount)],
+                    [`ผู้จัดการโครงการ (PM) ค่าบริหาร ${money(d.pmAmount)} + งบวัสดุ ${money(d.materialAmount)}`, percent(d.compPmTotalPercent), money(d.compPmTotalAmount)],
+                    ['รวมยอดจัดสรรทั้ง 3 ฝ่าย', percent(d.totalAllocatedToRolesPct), money(d.totalAllocatedToRoles)]
+                ])}
+                <section>
+                    <h2>5. หมายเหตุและคำอธิบาย</h2>
+                    <div class="report-callout"><p>${d.settlementNote}</p></div>
+                    <ul class="report-notes">
+                        <li><strong>ภาษีหัก ณ ที่จ่าย (WHT)</strong> คำนวณจากต้นทุนโครงการ ${money(d.netBudget)} × ${percent(d.whtPercent)} = ${money(d.whtAmount)} บาท</li>
+                        <li><strong>เงินสดจากฐานก่อน VAT หลังหัก WHT</strong> เหลือ ${money(d.netCashReceived)} บาท ยอดจัดสรรทั้ง 3 ฝ่ายรวม ${money(d.totalAllocatedToRoles)} บาท${d.partnerVatRefund > 0 ? ` โดยรวม VAT ในยอดคู่ค้าร่วม ${money(d.partnerVatRefund)} บาท` : ''}</li>
+                        <li><strong>ผู้จัดการโครงการ (PM)</strong> รับค่าบริหาร ${money(d.pmAmount)} บาท และงบวัสดุคงเหลือ ${money(d.materialAmount)} บาท เพื่อใช้บริหารและจัดซื้อวัสดุหน้างาน</li>
+                        <li><strong>คู่ค้าร่วม (VJC)</strong> ยอดค่า VJC ${money(d.vjcAmount)} บาท${d.partnerVatRefund > 0 ? ` บวก VAT ${money(d.partnerVatRefund)} บาทตามสูตรจัดสรร` : ''} รวม ${money(d.compPartnerAmount)} บาท</li>
+                        <li><strong>งบประมาณโครงการรวม</strong> ต้นทุน ${money(d.netBudget)} บาท + ${d.vatRateLabel} ${money(d.vatAmount)} บาท = ${money(d.totalBudgetWithVat)} บาท</li>
+                        <li><strong>ภาษีหัก ณ ที่จ่ายรายบุคคล</strong> หากมีการหักเพิ่มเติมตอนจ่าย ให้ตรวจตามข้อตกลงทางบัญชีของแต่ละฝ่าย</li>
+                    </ul>
+                </section>`;
+
+            document.getElementById('reportProjectName').textContent =
+                `ชื่อโครงการ: ${d.projectName || 'ไม่ได้ระบุชื่อโครงการ'}`;
+            document.getElementById('reportDate').textContent =
+                `วันที่ออกรายงาน ${new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })}`;
+
+            const note = document.getElementById('customProjectNote').value.trim();
+            if (note) {
+                const heading = document.createElement('h2');
+                heading.textContent = 'บันทึกเพิ่มเติมเฉพาะโครงการ';
+                const paragraph = document.createElement('p');
+                paragraph.className = 'report-note';
+                paragraph.textContent = note;
+                report.append(heading, paragraph);
+            }
+
+            // Fit long project names and notes inside the A4 print area.
+            report.style.removeProperty('--report-scale');
+            if (window.matchMedia('print').matches) {
+                const printableHeight = 278 * 96 / 25.4;
+                const height = report.getBoundingClientRect().height;
+                if (height > printableHeight) {
+                    report.style.setProperty('--report-scale', String(printableHeight / height));
+                }
+            }
+        }
+
+        function printReport() {
+            window.print();
+        }
+
+        window.addEventListener('beforeprint', preparePrintReport);
+
+        // ฟังก์ชัน 3: ส่งออกเป็นไฟล์ CSV (UTF-8 with BOM รองรับภาษาไทยใน Excel 100%)
+        function exportToCSV() {
+            calculateBudget();
+            const d = latestCalculationData;
+            const customNote = document.getElementById('customProjectNote').value.trim();
+            const nowStr = new Date().toLocaleString('th-TH');
+
+            // ฟังก์ชันครอบเครื่องหมายคำพูดสำหรับ CSV
+            const esc = (val) => {
+                const str = String(val ?? '');
+                if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+                    return `"${str.replace(/"/g, '""')}"`;
+                }
+                return str;
+            };
+
+            const num = (val) => val === undefined ? "" : Number(val).toFixed(2);
+
+            const rows = [
+                ['รายงานสรุปงบประมาณโครงการ (Project Budget Summary)'],
+                ['ชื่อโครงการ', d.projectName || 'ไม่ได้ระบุชื่อโครงการ'],
+                ['วันที่ส่งออกข้อมูล', nowStr],
+                [],
+                ['1. ข้อมูลตั้งต้นและโครงสร้างงบประมาณ (Budget Parameters)'],
+                ['รายการ', 'รายละเอียด / เงื่อนไข', 'จำนวนเงิน (บาท)'],
+                ['งบประมาณโครงการรวม', `ต้นทุนโครงการ + ${d.vatRateLabel}`, num(d.totalBudgetWithVat)],
+                [`ภาษีมูลค่าเพิ่ม (${d.vatRateLabel})`, 'คำนวณจากต้นทุนโครงการ', num(d.vatAmount)],
+                ['งบประมาณสุทธิก่อน VAT (ฐานคำนวณ 100%)', 'ยอดฐานสำหรับคิดสัดส่วนและ WHT', num(d.netBudget)],
+                [],
+                ['2. ตารางจัดสรรงบประมาณโครงการ (Budget Allocation Table)'],
+                ['รายการค่าใช้จ่าย', 'รูปแบบการคิด', 'สัดส่วน (%)', 'จำนวนเงิน (บาท)'],
+                ['ค่า VJC (คู่ค้า)', `สัดส่วน ${d.vjcPercent}%`, num(d.vjcPercent), num(d.vjcAmount)],
+                ['ค่าบริหารโครงการ (PM)', `สัดส่วน ${d.pmPercent}%`, num(d.pmPercent), num(d.pmAmount)],
+                ['ค่าภาษีหัก ณ ที่จ่าย (WHT ลูกค้าหักตอนส่งงาน)', `สัดส่วน ${d.whtPercent}%`, num(d.whtPercent), num(d.whtAmount)],
+                ['ค่าวิศวกรโครงการ', 'ยอดคงที่ (Fixed)', num(d.engineerPercent), num(d.engineerCost)],
+                ['งบประมาณค่าวัสดุอุปกรณ์คงเหลือ', 'ยอดคงเหลือสุทธิ', num(d.materialPercent), num(d.materialAmount)],
+                ['รวมงบประมาณสุทธิทั้งหมด', 'ครบตามฐานคำนวณ', '100.00', num(d.netBudget)],
+                [],
+                ['3. สรุปกระแสเงินสดรับสุทธิ (Net Cash Flow Summary)'],
+                ['รายการ', 'คำอธิบาย', 'จำนวนเงิน (บาท)'],
+                ['งบประมาณสุทธิก่อน VAT', 'ยอดเรียกเก็บก่อน VAT', num(d.netBudget)],
+                [d.vatRateLabel, 'VAT ในยอดเรียกเก็บ', num(d.vatAmount)],
+                ['หัก: ลูกค้าหัก WHT ณ วันส่งงาน', `หัก ${d.whtPercent}% (รับใบ 50 ทวิ)`, num(-d.whtAmount)],
+                ['ยอดเงินสดรับสุทธิที่นำมาจัดสรร (Net Cash Received)', 'ยอดเรียกเก็บรวม VAT หลังหัก WHT', num(d.settlementCash)],
+                [],
+                ['4. สรุปค่าตอบแทนตามบทบาท (Compensation Summary)'],
+                ['ลำดับ', 'ตำแหน่ง / บทบาท', 'ที่มาของการคำนวณ', 'สัดส่วนต่อเงินสดรับ (%)', 'จำนวนเงินจัดสรร (บาท)'],
+                ['1', 'วิศวกรประจำโครงการ', 'จากค่าวิศวกรโครงการ', num(d.compEngineerPercent), num(d.compEngineerAmount)],
+                ['2', 'คู่ค้าร่วม (VJC)', d.partnerVatRefund > 0 ? `ค่า VJC (${num(d.vjcAmount)}) + คืน ${d.vatRateLabel} (${num(d.partnerVatRefund)})` : `จากค่า VJC (${d.vjcPercent}%)`, num(d.compPartnerPercent), num(d.compPartnerAmount)],
+                ['3', 'ผู้จัดการโครงการ (PM)', `งบวัสดุคงเหลือ (${num(d.materialAmount)}) + ค่าบริหารโครงการ (${num(d.pmAmount)})`, num(d.compPmTotalPercent), num(d.compPmTotalAmount)],
+                ['', 'รวมเงินจัดสรรจ่ายออกทั้ง 3 ฝ่าย', 'ยอดเรียกเก็บรวม VAT หลังหัก WHT', num(d.totalAllocatedToRolesPct), num(d.totalAllocatedToRoles)],
+                [],
+                ['5. หมายเหตุและบันทึกเพิ่มเติม (Notes)'],
+                ['หลักเกณฑ์ WHT', `ลูกค้าหัก WHT ${d.whtPercent}% (${num(d.whtAmount)} บาท) ณ วันส่งมอบงาน เหลือเงินสดรับรวม VAT ${num(d.settlementCash)} บาท`],
+                ['หลักเกณฑ์ VAT คู่ค้าร่วม', d.partnerVatRefund > 0 ? `คืน ${d.vatRateLabel} (${num(d.partnerVatRefund)} บาท) ให้คู่ค้าร่วม รวมเป็น ${num(d.compPartnerAmount)} บาท` : 'ยอด VAT เป็น 0.00 บาท'],
+                ['ฐานเงินสดสำหรับจัดสรร', d.settlementNote],
+                ['บันทึกเพิ่มเติมเฉพาะโครงการ', customNote || '-']
+            ];
+
+            const csvContent = '\uFEFF' + rows.map(row => row.map(esc).join(',')).join('\r\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+
+            const link = document.createElement('a');
+            const filename = getExportFilename('csv');
+            link.href = url;
+            link.setAttribute('download', filename);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+
+            showToast('ส่งออกไฟล์ CSV สำเร็จ!', `ดาวน์โหลดไฟล์ ${filename} (เปิดใน Excel ได้ทันที)`);
+        }
+
+        // เริ่มคำนวณครั้งแรกเมื่อโหลดหน้าเว็บเสร็จ
+        window.addEventListener('DOMContentLoaded', () => {
+            updateCustomNoteDisplay();
+            calculateBudget();
+        });
+    </script>
+</body>
+</html>
